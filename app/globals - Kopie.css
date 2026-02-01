@@ -1,0 +1,751 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---- Whose Song UI (clean game look) ---- */
+
+:root {
+  --ws-card: rgba(255, 255, 255, 0.78);
+  --ws-border: rgba(0, 0, 0, 0.10);
+  --ws-text-muted: rgba(0, 0, 0, 0.62);
+}
+
+.ws-page {
+  min-height: 100dvh;
+  background: linear-gradient(180deg, #f7f8ff 0%, #f3f4f6 50%, #eef2ff 100%);
+}
+
+.ws-container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 18px 14px 110px;
+}
+
+.ws-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ws-title {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.ws-subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--ws-text-muted);
+}
+
+.ws-card {
+  background: var(--ws-card);
+  border: 1px solid var(--ws-border);
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(12px);
+}
+
+.ws-card-title {
+  font-weight: 900;
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+.ws-muted {
+  font-size: 13px;
+  color: var(--ws-text-muted);
+  line-height: 1.35;
+}
+
+.ws-error {
+  color: #b91c1c;
+  font-weight: 800;
+}
+
+.ws-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ws-row-tight {
+  margin-top: 10px;
+}
+
+.ws-chip {
+  font-size: 12px;
+  font-weight: 900;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(255,255,255,.75);
+}
+
+.ws-tag {
+  font-size: 11px;
+  font-weight: 950;
+  padding: 3px 8px;
+  border-radius: 999px;
+  margin-left: 8px;
+  background: rgba(0,0,0,.08);
+}
+
+.ws-you {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 950;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.10);
+}
+
+.ws-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ws-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(0,0,0,.03);
+  border: 1px solid rgba(0,0,0,.06);
+}
+
+.ws-list-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ws-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-weight: 950;
+  color: rgba(0,0,0,.85);
+  border: 1px solid rgba(0,0,0,.10);
+}
+
+.ws-avatar--big {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  font-size: 18px;
+}
+
+.ws-name {
+  font-weight: 900;
+}
+
+.ws-name--big {
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.ws-input {
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,.14);
+  background: rgba(255,255,255,.92);
+  font-size: 15px;
+  outline: none;
+}
+
+.ws-input:focus {
+  border-color: rgba(0,0,0,.35);
+}
+
+.ws-btn {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #0b0b0f;
+  color: #fff;
+  font-weight: 950;
+  border: none;
+}
+
+.ws-btn:disabled {
+  opacity: .45;
+}
+
+.ws-btn--ghost {
+  background: rgba(0,0,0,.05);
+  color: #0b0b0f;
+  border: 1px solid rgba(0,0,0,.10);
+}
+
+.ws-link {
+  font-weight: 900;
+  font-size: 13px;
+  color: rgba(0,0,0,.72);
+  text-decoration: underline;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.ws-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ws-progress {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.08);
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.ws-progress__bar {
+  height: 100%;
+  border-radius: 999px;
+  background: rgba(0,0,0,.85);
+}
+
+.ws-embed {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ws-reveal {
+  margin-top: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #0b0b0f;
+  color: #fff;
+}
+
+.ws-reveal-name {
+  font-size: 24px;
+  font-weight: 950;
+  margin-top: 6px;
+}
+
+.ws-debug {
+  font-size: 12px;
+  color: rgba(0,0,0,.65);
+  white-space: pre-wrap;
+}
+
+.ws-sticky {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-top: 1px solid rgba(0,0,0,.08);
+  background: rgba(255,255,255,.85);
+  backdrop-filter: blur(12px);
+}
+
+.ws-sticky-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 10px 14px calc(env(safe-area-inset-bottom) + 12px);
+}
+
+/* --- Stepper vertical (+ oben, - unten) --- */
+.ws-stepper-vertical {
+  display: grid;
+  grid-template-rows: auto auto auto;
+  gap: 8px;
+  align-items: center;
+  justify-items: center;
+  min-width: 64px;
+}
+
+.ws-step {
+  width: 44px;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,.12);
+  background: rgba(255,255,255,.85);
+  font-weight: 950;
+  font-size: 16px;
+}
+
+.ws-step-value {
+  font-weight: 950;
+  font-size: 18px;
+  min-width: 44px;
+  text-align: center;
+}
+
+/* --- Scoreboard (Cards) --- */
+.ws-scoregrid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (min-width: 700px) {
+  .ws-scoregrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.ws-scorecard {
+  border-radius: 18px;
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(255,255,255,.80);
+  padding: 12px;
+  overflow: hidden;
+}
+
+.ws-scorecard.is-first {
+  background: linear-gradient(180deg, rgba(255,215,0,.28), rgba(255,255,255,.80));
+}
+.ws-scorecard.is-second {
+  background: linear-gradient(180deg, rgba(192,192,192,.25), rgba(255,255,255,.80));
+}
+.ws-scorecard.is-third {
+  background: linear-gradient(180deg, rgba(205,127,50,.20), rgba(255,255,255,.80));
+}
+
+.ws-score-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ws-medal {
+  font-size: 18px;
+}
+
+.ws-score-rank {
+  font-weight: 950;
+  font-size: 14px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(255,255,255,.62);
+}
+
+.ws-score-mid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.ws-score-bottom {
+  margin-top: 10px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.ws-points-big {
+  font-size: 28px;
+  font-weight: 950;
+}
+
+/* --- Player buttons (guessing) --- */
+.ws-playergrid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (min-width: 700px) {
+  .ws-playergrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.ws-playerbtn {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 14px 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(0,0,0,.12);
+  background: rgba(255,255,255,.86);
+  box-shadow: 0 12px 24px rgba(0,0,0,.06);
+  transition: transform .08s ease, box-shadow .08s ease;
+}
+
+.ws-playerbtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 34px rgba(0,0,0,.10);
+}
+
+.ws-playerbtn:active {
+  transform: translateY(0px) scale(0.99);
+}
+
+.ws-playerbtn:disabled {
+  opacity: .55;
+}
+
+.ws-playerbtn.is-selected {
+  outline: 3px solid rgba(0,0,0,.75);
+  background: rgba(0,0,0,.04);
+}
+
+.ws-playerbtn__avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  font-weight: 950;
+  font-size: 20px;
+  border: 1px solid rgba(0,0,0,.10);
+}
+
+.ws-playerbtn__name {
+  font-size: 14px;
+  font-weight: 950;
+  line-height: 1.1;
+}
+
+.ws-playerbtn__meta {
+  font-size: 12px;
+  color: rgba(0,0,0,.60);
+}
+
+/* --- Color picker: clean, no black background --- */
+.ws-color-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(255,255,255,.88);
+}
+
+.ws-preview-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  font-weight: 950;
+  font-size: 20px;
+  border: 1px solid rgba(0,0,0,.10);
+}
+
+.ws-preview-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ws-preview-name {
+  font-weight: 950;
+  font-size: 16px;
+}
+
+.ws-preview-sub {
+  font-size: 12px;
+  color: rgba(0,0,0,.60);
+}
+
+.ws-color-picker {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 10px;
+  padding: 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(255,255,255,.70);
+}
+
+@media (max-width: 520px) {
+  .ws-color-picker {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.ws-color-swatch {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  border: 2px solid rgba(0,0,0,.08);
+  cursor: pointer;
+  box-shadow: 0 10px 18px rgba(0,0,0,.06);
+  transition: transform .08s ease;
+}
+
+.ws-color-swatch:hover {
+  transform: translateY(-1px);
+}
+
+.ws-color-swatch.is-selected {
+  outline: 3px solid rgba(0,0,0,.80);
+  border-color: rgba(255,255,255,.90);
+}
+
+/* --- Reveal Animation --- */
+@keyframes ws-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 rgba(0,0,0,0);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 0 40px rgba(0,0,0,.25);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 rgba(0,0,0,0);
+  }
+}
+
+.ws-reveal-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 20px;
+  animation: ws-pulse 1.8s ease-in-out infinite;
+}
+
+.ws-reveal-name {
+  font-size: 26px;
+  font-weight: 950;
+  text-align: center;
+}
+
+
+@keyframes ws-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 rgba(0,0,0,0); }
+  50% { transform: scale(1.06); box-shadow: 0 0 40px rgba(0,0,0,.25); }
+  100% { transform: scale(1); box-shadow: 0 0 0 rgba(0,0,0,0); }
+}
+
+.ws-reveal-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 20px;
+  animation: ws-pulse 1.8s ease-in-out infinite;
+}
+
+.ws-reveal-name {
+  font-size: 26px;
+  font-weight: 950;
+  text-align: center;
+}
+
+
+/* --- Game FX: Confetti / Particles --- */
+@keyframes ws-float {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-80px) scale(0.9); opacity: 0; }
+}
+
+.ws-confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ws-confetti i {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  opacity: 0;
+  animation: ws-float 1.1s ease-out forwards;
+}
+
+/* --- Game FX: Shake (falscher Tipp) --- */
+@keyframes ws-shake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+  100% { transform: translateX(0); }
+}
+
+.ws-shake {
+  animation: ws-shake 380ms ease-in-out;
+}
+
+/* --- Optional: kleine "Toast" Meldung --- */
+@keyframes ws-toast {
+  0% { transform: translateY(10px); opacity: 0; }
+  15% { transform: translateY(0px); opacity: 1; }
+  85% { transform: translateY(0px); opacity: 1; }
+  100% { transform: translateY(10px); opacity: 0; }
+}
+
+.ws-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 92px; /* über sticky buttons */
+  transform: translateX(-50%);
+  background: rgba(0,0,0,.85);
+  color: white;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-weight: 800;
+  z-index: 9999;
+  animation: ws-toast 1.4s ease-in-out forwards;
+}
+/* --- Mini Roomcode Button (nur während der Runde) --- */
+.ws-roomcode-mini-btn {
+  border: 1px solid rgba(0,0,0,.12);
+  background: rgba(0,0,0,.05);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+}
+
+/* --- Punkte Pop Animation --- */
+@keyframes ws-pop {
+  0% { transform: translateY(8px) scale(0.96); opacity: 0; }
+  15% { transform: translateY(0px) scale(1.02); opacity: 1; }
+  75% { transform: translateY(-4px) scale(1.02); opacity: 1; }
+  100% { transform: translateY(-10px) scale(0.98); opacity: 0; }
+}
+
+.ws-points-pop {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: white;
+  font-weight: 950;
+  padding: 10px 12px;
+  border-radius: 999px;
+  animation: ws-pop 1.6s ease-in-out forwards;
+  box-shadow: 0 10px 30px rgba(0,0,0,.18);
+}
+
+/* --- Confetti / Particles --- */
+@keyframes ws-float {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-80px) scale(0.9); opacity: 0; }
+}
+
+.ws-confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ws-confetti i {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  opacity: 0;
+  animation: ws-float 1.1s ease-out forwards;
+}
+
+/* --- Shake (Fehlerfeedback) --- */
+@keyframes ws-shake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+  100% { transform: translateX(0); }
+}
+
+.ws-shake {
+  animation: ws-shake 380ms ease-in-out;
+}
+
+/* --- Toast Meldung --- */
+@keyframes ws-toast {
+  0% { transform: translate(-50%, 10px); opacity: 0; }
+  15% { transform: translate(-50%, 0px); opacity: 1; }
+  85% { transform: translate(-50%, 0px); opacity: 1; }
+  100% { transform: translate(-50%, 10px); opacity: 0; }
+}
+
+.ws-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 92px; /* über sticky buttons */
+  transform: translateX(-50%);
+  background: rgba(0,0,0,.85);
+  color: white;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-weight: 900;
+  z-index: 9999;
+  animation: ws-toast 1.4s ease-in-out forwards;
+}
+
+/* =========================================
+   APP-LIKE FEEL
+   Kein Browser-Scroll, nur innerer Content
+========================================= */
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* iOS / Mobile Fix */
+body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
+}
+
+/* App-Hülle */
+.ws-app {
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Inneres Layout */
+.ws-app__inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* EINZIGER scrollbarer Bereich */
+.ws-app__content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding-bottom: 120px;
+  min-height: 0;
+}
+
+

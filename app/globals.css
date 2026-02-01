@@ -1,0 +1,1068 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================
+   Whose Song — Global Styles
+   Paper / Handdrawn Style (DEIN Layout bleibt)
+   Font: More Sugar
+========================================= */
+
+/* ---------- Font ---------- */
+@font-face {
+  font-family: "More Sugar";
+  src: url("/fonts/more-sugar.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* -----------------------------------------
+   Design Tokens (Paper + Ink)
+----------------------------------------- */
+:root {
+  /* Paper */
+  --ws-paper: #faf3e3;            /* Warm Cream */
+  --ws-paper-soft: #f6eedc;       /* leicht dunkler für Karten */
+  --ws-paper-soft-2: #fbf6ea;     /* sehr hell */
+  --ws-paper-edge: rgba(0, 0, 0, 0.10);
+
+  /* Ink */
+  --ws-ink: #0b0b0f;
+  --ws-text-muted: rgba(0, 0, 0, 0.62);
+  --ws-ink-soft: rgba(0, 0, 0, 0.65);
+  --ws-border: rgba(0, 0, 0, 0.22);
+  --ws-border-strong: rgba(0, 0, 0, 0.32);
+
+  /* Shadows (handdrawn-ish offset) */
+  --ws-shadow: 2px 3px 0 rgba(0, 0, 0, 0.22);
+  --ws-shadow-soft: 1px 2px 0 rgba(0, 0, 0, 0.16);
+
+  /* Radius */
+  --ws-radius: 18px;
+
+  /* Legacy name used in buttons */
+  --ws-black: var(--ws-ink);
+}
+
+/* -----------------------------------------
+   Base (WICHTIG: Font wirklich überall erzwingen)
+----------------------------------------- */
+html,
+body {
+  height: 100%;
+  overflow-y: auto; /* ✅ wieder scrollen */
+  overflow-x: hidden;
+  background: var(--ws-paper);
+  color: var(--ws-ink);
+
+  /* ✅ erzwingt More Sugar auch wenn irgendwo default gesetzt wird */
+  font-family: "More Sugar", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+
+  /* weniger “komisch bold” / konsistenter Handdrawn Look */
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
+  line-height: 1.35;
+}
+
+/* ✅ Inputs/Buttons übernehmen sonst manchmal System-Font */
+button,
+input,
+textarea,
+select {
+  font-family: inherit !important;
+  font-synthesis: none;
+}
+
+/* -----------------------------------------
+   Optional: App shell (wenn du es später nutzen willst)
+----------------------------------------- */
+.ws-app {
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.ws-app__inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ws-app__content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding-bottom: 120px;
+  min-height: 0;
+}
+
+/* -----------------------------------------
+   Page Layout (Paper Textur, CSS only)
+----------------------------------------- */
+.ws-page {
+  min-height: 100dvh;
+
+  /* Papier-Textur + leichte “Dirt/Grain” Ebene */
+  background:
+    radial-gradient(900px 420px at 10% 0%, rgba(0,0,0,.035), transparent 60%),
+    radial-gradient(700px 380px at 90% 18%, rgba(0,0,0,.028), transparent 60%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(0,0,0,0.014),
+      rgba(0,0,0,0.014) 1px,
+      transparent 1px,
+      transparent 4px
+    ),
+    var(--ws-paper);
+}
+
+.ws-container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 18px 14px 18px;
+}
+
+/* -----------------------------------------
+   Header
+----------------------------------------- */
+.ws-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ws-title {
+  font-size: 36px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+}
+
+.ws-subtitle {
+  margin-top: 6px;
+  font-size: 15px;
+  color: var(--ws-text-muted);
+}
+
+/* -----------------------------------------
+   Cards / Text
+----------------------------------------- */
+.ws-card {
+  background: var(--ws-paper-soft);
+  border: 2px solid var(--ws-border);
+  border-radius: var(--ws-radius);
+  padding: 16px;
+  box-shadow: var(--ws-shadow);
+  backdrop-filter: none;
+}
+
+.ws-card-title {
+  font-weight: 400;
+  font-size: 19px;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.ws-muted {
+  font-size: 14px;
+  color: var(--ws-text-muted);
+  line-height: 1.4;
+}
+
+.ws-error {
+  color: #b91c1c;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.ws-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ws-row-tight {
+  margin-top: 10px;
+}
+
+/* -----------------------------------------
+   Chips / Tags
+----------------------------------------- */
+.ws-chip {
+  font-size: 13px;
+  font-weight: 400;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 2px solid var(--ws-border);
+  background: var(--ws-paper-soft-2);
+  box-shadow: var(--ws-shadow-soft);
+  letter-spacing: 0.03em;
+}
+
+.ws-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 400;
+  padding: 4px 9px;
+  border-radius: 999px;
+  margin-left: 8px;
+  background: rgba(0,0,0,.06);
+  border: 2px solid rgba(0,0,0,.14);
+}
+
+.ws-you {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.07);
+  border: 2px solid rgba(0,0,0,.16);
+}
+
+/* -----------------------------------------
+   Lists / Avatars
+----------------------------------------- */
+.ws-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ws-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: var(--ws-paper-soft-2);
+  border: 2px solid rgba(0,0,0,.16);
+  box-shadow: var(--ws-shadow-soft);
+}
+
+.ws-list-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ws-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-weight: 400;
+  color: rgba(0,0,0,.85);
+  border: 2px solid rgba(0,0,0,.18);
+  box-shadow: var(--ws-shadow-soft);
+}
+
+.ws-avatar--big {
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  font-size: 22px;
+}
+
+.ws-name {
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.ws-name--big {
+  font-size: 16px;
+  font-weight: 400;
+}
+
+/* -----------------------------------------
+   Inputs (✅ Name-Feld kleiner machen)
+----------------------------------------- */
+.ws-input {
+  width: 100%;
+
+  /* ✅ kleiner als vorher */
+  padding: 11px 12px;
+  border-radius: 14px;
+
+  border: 2px solid rgba(0,0,0,.22);
+  background: var(--ws-paper);
+
+  font-size: 16px; /* ✅ iOS zoom fix */
+  line-height: 1.15;
+
+  outline: none;
+  font-family: inherit !important;
+}
+
+.ws-input:focus {
+  border-color: rgba(0,0,0,.40);
+}
+
+/* -----------------------------------------
+   Buttons (Ink/Sticker Look)
+----------------------------------------- */
+.ws-btn {
+  width: 100%;
+  padding: 14px 14px;
+  border-radius: 16px;
+  background: var(--ws-ink);
+  color: #fff;
+  font-weight: 400;
+  border: 2px solid var(--ws-ink);
+  box-shadow: var(--ws-shadow);
+  transition: transform .08s ease, box-shadow .08s ease, opacity .08s ease;
+  font-family: inherit !important;
+  font-size: 16px;
+  letter-spacing: 0.03em;
+}
+
+.ws-btn:active {
+  transform: translate(1px, 2px);
+  box-shadow: none;
+}
+
+.ws-btn:disabled {
+  opacity: .45;
+}
+
+.ws-btn--ghost {
+  background: var(--ws-paper-soft-2);
+  color: var(--ws-ink);
+  border: 2px solid rgba(0,0,0,.22);
+  box-shadow: var(--ws-shadow-soft);
+}
+
+.ws-btn--ghost:active {
+  transform: translate(1px, 2px);
+  box-shadow: none;
+}
+
+.ws-link {
+  font-weight: 400;
+  font-size: 14px;
+  color: rgba(0,0,0,.78);
+  text-decoration: underline;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  font-family: inherit !important;
+}
+
+.ws-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* -----------------------------------------
+   Progress
+----------------------------------------- */
+.ws-progress {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.10);
+  overflow: hidden;
+  margin-top: 8px;
+  border: 2px solid rgba(0,0,0,.14);
+}
+
+.ws-progress__bar {
+  height: 100%;
+  border-radius: 999px;
+  background: rgba(0,0,0,.85);
+}
+
+/* -----------------------------------------
+   Sticky Controls
+----------------------------------------- */
+.ws-sticky {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-top: 2px solid rgba(0,0,0,.18);
+  background: rgba(250,243,227,.96);
+  backdrop-filter: none;
+}
+
+.ws-sticky-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 10px 14px calc(env(safe-area-inset-bottom) + 12px);
+}
+
+/* -----------------------------------------
+   Scoreboard Grid
+----------------------------------------- */
+.ws-scoregrid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (min-width: 700px) {
+  .ws-scoregrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.ws-scorecard {
+  border-radius: 18px;
+  border: 2px solid rgba(0,0,0,.18);
+  background: var(--ws-paper-soft-2);
+  padding: 12px;
+  overflow: hidden;
+  box-shadow: var(--ws-shadow-soft);
+}
+
+.ws-scorecard.is-first {
+  background: linear-gradient(180deg, rgba(0,0,0,.03), var(--ws-paper-soft-2));
+}
+.ws-scorecard.is-second {
+  background: linear-gradient(180deg, rgba(0,0,0,.025), var(--ws-paper-soft-2));
+}
+.ws-scorecard.is-third {
+  background: linear-gradient(180deg, rgba(0,0,0,.02), var(--ws-paper-soft-2));
+}
+
+.ws-score-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ws-medal {
+  font-size: 18px;
+}
+
+.ws-score-rank {
+  font-weight: 400;
+  font-size: 14px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 2px solid rgba(0,0,0,.18);
+  background: var(--ws-paper);
+  box-shadow: var(--ws-shadow-soft);
+}
+
+.ws-score-mid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.ws-score-bottom {
+  margin-top: 10px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.ws-points-big {
+  font-size: 30px;
+  font-weight: 400;
+}
+
+/* -----------------------------------------
+   Player Buttons (Guessing / Banger)
+----------------------------------------- */
+.ws-playergrid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (min-width: 700px) {
+  .ws-playergrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.ws-playerbtn {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 14px 12px;
+  border-radius: 18px;
+  border: 2px solid rgba(0,0,0,.18);
+  background: var(--ws-paper);
+  box-shadow: var(--ws-shadow-soft);
+  transition: transform .08s ease, box-shadow .08s ease, opacity .08s ease;
+  font-family: inherit !important;
+}
+
+.ws-playerbtn:hover {
+  transform: translateY(-1px);
+}
+
+.ws-playerbtn:active {
+  transform: translate(1px, 2px);
+  box-shadow: none;
+}
+
+.ws-playerbtn:disabled {
+  opacity: .55;
+}
+
+.ws-playerbtn.is-selected {
+  outline: 3px solid rgba(0,0,0,.80);
+  background: rgba(0,0,0,.03);
+}
+
+.ws-playerbtn__avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  font-weight: 400;
+  font-size: 22px;
+  border: 2px solid rgba(0,0,0,.18);
+  box-shadow: var(--ws-shadow-soft);
+}
+
+.ws-playerbtn__name {
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.ws-playerbtn__meta {
+  font-size: 13px;
+  color: rgba(0,0,0,.62);
+}
+
+/* -----------------------------------------
+   Color Picker
+----------------------------------------- */
+.ws-color-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 2px solid rgba(0,0,0,.18);
+  background: var(--ws-paper-soft-2);
+  box-shadow: var(--ws-shadow-soft);
+}
+
+.ws-preview-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  font-weight: 400;
+  font-size: 22px;
+  border: 2px solid rgba(0,0,0,.18);
+}
+
+.ws-preview-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ws-preview-name {
+  font-weight: 400;
+  font-size: 18px;
+}
+
+.ws-preview-sub {
+  font-size: 13px;
+  color: rgba(0,0,0,.62);
+}
+
+.ws-color-picker {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 10px;
+  padding: 10px;
+  border-radius: 16px;
+  border: 2px solid rgba(0,0,0,.18);
+  background: var(--ws-paper-soft-2);
+  box-shadow: var(--ws-shadow-soft);
+}
+
+@media (max-width: 520px) {
+  .ws-color-picker {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.ws-color-swatch {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  border: 2px solid rgba(0,0,0,.18);
+  cursor: pointer;
+  box-shadow: var(--ws-shadow-soft);
+  transition: transform .08s ease;
+}
+
+.ws-color-swatch:hover {
+  transform: translateY(-1px);
+}
+
+.ws-color-swatch.is-selected {
+  outline: 3px solid rgba(0,0,0,.85);
+  border-color: rgba(0,0,0,.25);
+}
+
+/* -----------------------------------------
+   Roomcode Mini Badge (oben rechts)
+----------------------------------------- */
+.ws-roomcode-mini-btn {
+  border: 2px solid rgba(0,0,0,.18);
+  background: var(--ws-paper-soft-2);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+  box-shadow: var(--ws-shadow-soft);
+  transition: transform .08s ease, box-shadow .08s ease;
+  font-family: inherit !important;
+}
+
+.ws-roomcode-mini-btn:active {
+  transform: translate(1px, 2px);
+  box-shadow: none;
+}
+
+/* -----------------------------------------
+   Slider (Rundenanzahl)
+----------------------------------------- */
+.ws-slider {
+  width: 100%;
+  accent-color: #0b0b0f;
+}
+
+.ws-slider-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.ws-slider-value {
+  min-width: 42px;
+  text-align: right;
+  font-weight: 400;
+  font-size: 18px;
+  color: rgba(0,0,0,.85);
+}
+
+/* -----------------------------------------
+   Reveal / FX
+----------------------------------------- */
+@keyframes ws-pulse {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+  100% { transform: translateY(0); }
+}
+
+.ws-reveal-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 20px;
+  border: 2px solid rgba(0,0,0,.18);
+  box-shadow: var(--ws-shadow);
+  animation: ws-pulse 1.8s ease-in-out infinite;
+}
+
+.ws-reveal-name {
+  font-size: 28px;
+  font-weight: 400;
+  text-align: center;
+  letter-spacing: 0.03em;
+}
+
+@keyframes ws-float {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-80px) scale(0.9); opacity: 0; }
+}
+
+.ws-confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ws-confetti i {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  opacity: 0;
+  animation: ws-float 1.1s ease-out forwards;
+}
+
+@keyframes ws-shake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+  100% { transform: translateX(0); }
+}
+
+.ws-shake {
+  animation: ws-shake 380ms ease-in-out;
+}
+
+@keyframes ws-toast {
+  0% { transform: translate(-50%, 10px); opacity: 0; }
+  15% { transform: translate(-50%, 0px); opacity: 1; }
+  85% { transform: translate(-50%, 0px); opacity: 1; }
+  100% { transform: translate(-50%, 10px); opacity: 0; }
+}
+
+.ws-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 92px;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,.88);
+  color: white;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-weight: 400;
+  z-index: 9999;
+  animation: ws-toast 1.4s ease-in-out forwards;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  font-family: inherit !important;
+}
+
+@keyframes ws-pop {
+  0% { transform: translateY(8px) scale(0.96); opacity: 0; }
+  15% { transform: translateY(0px) scale(1.02); opacity: 1; }
+  75% { transform: translateY(-4px) scale(1.02); opacity: 1; }
+  100% { transform: translateY(-10px) scale(0.98); opacity: 0; }
+}
+
+.ws-points-pop {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: white;
+  font-weight: 400;
+  padding: 10px 12px;
+  border-radius: 999px;
+  animation: ws-pop 1.6s ease-in-out forwards;
+  box-shadow: 0 10px 30px rgba(0,0,0,.18);
+  letter-spacing: 0.02em;
+  font-family: inherit !important;
+}
+
+/* =========================================
+   TOPBAR + MENU (Global)
+========================================= */
+.ws-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 9998;
+  background: rgba(250,243,227,.96);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.14);
+}
+
+.ws-topbar-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ws-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ws-topbar-right {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ws-topbar-title {
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  font-size: 15px;
+  color: rgba(0, 0, 0, 0.88);
+  font-family: inherit !important;
+}
+
+/* Icon Button */
+.ws-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  border: 2px solid rgba(0, 0, 0, 0.18);
+  background: var(--ws-paper-soft-2);
+  box-shadow: var(--ws-shadow-soft);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: transform .08s ease, box-shadow .08s ease, opacity .08s ease;
+  font-family: inherit !important;
+}
+
+.ws-icon-btn:active {
+  transform: translate(1px, 2px);
+  box-shadow: none;
+}
+
+.ws-btn--press:active {
+  transform: translate(1px, 2px);
+}
+
+/* Dropdown Menü */
+.ws-menu {
+  position: absolute;
+  top: 46px;
+  right: 0;
+  width: 210px;
+  padding: 10px;
+  border-radius: 16px;
+  border: 2px solid rgba(0, 0, 0, 0.18);
+  background: rgba(250,243,227,.98);
+  box-shadow: var(--ws-shadow);
+  display: grid;
+  gap: 10px;
+}
+
+.ws-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: var(--ws-paper-soft-2);
+  border: 2px solid rgba(0,0,0,.14);
+  box-shadow: var(--ws-shadow-soft);
+}
+
+.ws-menu-label {
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.80);
+  font-family: inherit !important;
+}
+
+/* Menü Button */
+.ws-menu-btn {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 2px solid rgba(0, 0, 0, 0.18);
+  background: var(--ws-paper-soft-2);
+  font-weight: 400;
+  cursor: pointer;
+  transition: transform .08s ease, box-shadow .08s ease, opacity .08s ease;
+  box-shadow: var(--ws-shadow-soft);
+  font-family: inherit !important;
+  letter-spacing: 0.02em;
+}
+
+.ws-menu-btn:active {
+  transform: translate(1px, 2px);
+  box-shadow: none;
+}
+
+.ws-menu-close {
+  background: rgba(0,0,0,.04);
+}
+
+/* Toggle Switch */
+.ws-toggle {
+  width: 44px;
+  height: 26px;
+  border-radius: 999px;
+  border: 2px solid rgba(0,0,0,.18);
+  background: rgba(0,0,0,.10);
+  position: relative;
+  cursor: pointer;
+  padding: 0;
+  transition: background .12s ease;
+}
+
+.ws-toggle-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.98);
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform .12s ease;
+  box-shadow: var(--ws-shadow-soft);
+}
+
+.ws-toggle.is-on {
+  background: rgba(0,0,0,.85);
+}
+
+.ws-toggle.is-on .ws-toggle-dot {
+  transform: translateX(18px);
+}
+
+/* =========================================
+   Confirm Dialog (Spiel verlassen)
+========================================= */
+.ws-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(0,0,0,.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.ws-confirm-card {
+  width: 100%;
+  max-width: 360px;
+  background: rgba(250,243,227,.98);
+  border-radius: 22px;
+  padding: 18px;
+  border: 2px solid rgba(0,0,0,.18);
+  box-shadow: 0 18px 0 rgba(0,0,0,.12);
+  animation: ws-confirm-pop .18s ease-out;
+}
+
+@keyframes ws-confirm-pop {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.ws-confirm-title {
+  font-weight: 400;
+  font-size: 20px;
+  margin-bottom: 6px;
+  letter-spacing: 0.03em;
+  font-family: inherit !important;
+}
+
+.ws-confirm-message {
+  font-size: 15px;
+  color: rgba(0,0,0,.65);
+  margin-bottom: 16px;
+  line-height: 1.4;
+  font-family: inherit !important;
+}
+
+.ws-confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* =========================================
+   Banger Button (🔥 am Song)
+========================================= */
+.ws-banger-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 5;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 2px solid rgba(0,0,0,.18);
+  background: var(--ws-paper-soft-2);
+  box-shadow: var(--ws-shadow-soft);
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  cursor: pointer;
+  transition: transform .08s ease, opacity .12s ease;
+  font-family: inherit !important;
+}
+
+.ws-banger-btn:active {
+  transform: translate(1px, 2px);
+  box-shadow: none;
+}
+
+.ws-banger-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 🔥 Floating Banger Button */
+.ws-banger-float {
+  position: fixed;
+  top: 72px;
+  right: 16px;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  font-size: 22px;
+  background: var(--ws-paper-soft-2);
+  border: 2px solid rgba(0,0,0,.18);
+  box-shadow: var(--ws-shadow);
+  cursor: pointer;
+  z-index: 9999;
+  transition: transform .08s ease, opacity .08s ease;
+  font-family: inherit !important;
+}
+
+.ws-banger-float:active {
+  transform: translate(1px, 2px);
+  box-shadow: none;
+}
+
+.ws-banger-float.is-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.ws-input {
+  width: 100%;
+  box-sizing: border-box; /* 🔑 DAS ist der wichtigste Fix */
+  padding: 12px 14px;     /* etwas weniger horizontal */
+  border-radius: 16px;
+  border: 2px solid rgba(0,0,0,.22);
+  background: var(--ws-paper);
+  font-size: 16px;
+  outline: none;
+  font-family: "More Sugar", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
