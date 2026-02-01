@@ -175,6 +175,64 @@ function Podium({ top3 }: { top3: Player[] }) {
   );
 }
 
+function InGameScoreHeader({
+  me,
+  myRank,
+  totalPlayers,
+}: {
+  me: Player | null;
+  myRank: number | null;
+  totalPlayers: number;
+}) {
+  const points = me?.score ?? 0;
+
+  return (
+    <div className="ws-row" style={{ alignItems: "baseline" }}>
+      <div>
+        <div className="ws-card-title" style={{ marginBottom: 4 }}>
+          Dein Stand
+        </div>
+        <div className="ws-muted" style={{ fontSize: 13 }}>
+          {myRank ? `Rang #${myRank}` : "Rang —"} · {points} Punkte · {totalPlayers} Spieler
+        </div>
+      </div>
+
+      {myRank ? <div className="ws-chip">#{myRank}</div> : <div className="ws-chip">—</div>}
+    </div>
+  );
+}
+
+function InGameScoreMiniList({
+  scoreboard,
+  playerId,
+}: {
+  scoreboard: Player[];
+  playerId: string;
+}) {
+  return (
+    <div className="ws-list" style={{ marginTop: 12 }}>
+      {scoreboard.map((p, idx) => (
+        <div key={p.id} className="ws-list-item">
+          <div className="ws-list-left">
+            <div className="ws-chip" style={{ minWidth: 44, textAlign: "center" }}>
+              #{idx + 1}
+            </div>
+            <div className="ws-avatar" style={{ backgroundColor: p.color }}>
+              {(p.name?.[0] ?? "?").toUpperCase()}
+            </div>
+            <div className="ws-name">
+              {p.name}
+              {p.id === playerId ? <span className="ws-you">du</span> : null}
+              {p.isHost ? <span className="ws-tag">Host</span> : null}
+            </div>
+          </div>
+          <div className="ws-name">{p.score ?? 0}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function RoomClient({ code }: { code: string }) {
   const roomCode = code.toUpperCase();
   const playerId = useMemo(() => getOrCreatePlayerId(), []);
@@ -271,6 +329,13 @@ export default function RoomClient({ code }: { code: string }) {
   }, [players]);
 
   const top3 = useMemo(() => scoreboard.slice(0, 3), [scoreboard]);
+
+  const me = useMemo(() => players.find((p) => p.id === playerId) ?? null, [players, playerId]);
+
+  const myRank = useMemo(() => {
+    const idx = scoreboard.findIndex((p) => p.id === playerId);
+    return idx >= 0 ? idx + 1 : null;
+  }, [scoreboard, playerId]);
 
   // --- Profil-Check ---
   useEffect(() => {
@@ -960,57 +1025,27 @@ export default function RoomClient({ code }: { code: string }) {
 
         {showMain && room && (
           <>
-            {/* RANGLISTE erst nach Start */}
-            {room.phase !== "lobby" && (
+            {/* ✅ IN-GAME SCORE (Top3 + eigener Rang) – NICHT im Lobby */}
+            {room.phase !== "lobby" && room.phase !== "finished" && (
               <Card>
-                <div className="ws-row">
-                  <div className="ws-card-title">Rangliste</div>
-                  <div className="ws-chip">Live</div>
-                </div>
+                <InGameScoreHeader me={me} myRank={myRank} totalPlayers={players.length} />
 
-                <div className="ws-scoregrid">
-                  {scoreboard.map((p, idx) => (
-                    <div
-                      key={p.id}
-                      className={`ws-scorecard ${
-                        idx === 0 ? "is-first" : idx === 1 ? "is-second" : idx === 2 ? "is-third" : ""
-                      }`}
-                    >
-                      <div className="ws-score-top">
-                        <div className="ws-medal">{medalForRank(idx + 1)}</div>
-                        <div className="ws-score-rank">#{idx + 1}</div>
-                      </div>
-
-                      <div className="ws-score-mid">
-                        <div className="ws-avatar ws-avatar--big" style={{ backgroundColor: p.color }}>
-                          {(p.name?.[0] ?? "?").toUpperCase()}
-                        </div>
-
-                        <div>
-                          <div className="ws-name ws-name--big">
-                            {p.name}
-                            {p.id === playerId ? <span className="ws-you">du</span> : null}
-                          </div>
-
-                          <div className="ws-muted" style={{ marginTop: 2 }}>
-                            {p.isHost ? (
-                              <span className="ws-tag" style={{ marginLeft: 0 }}>
-                                Host
-                              </span>
-                            ) : (
-                              <span style={{ opacity: 0 }}>.</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="ws-score-bottom">
-                        <div className="ws-points-big">{p.score ?? 0}</div>
-                        <div className="ws-muted">Punkte</div>
-                      </div>
+                {/* Podium nur wenn >=3 Spieler, sonst kompakte Liste */}
+                {scoreboard.length >= 3 ? (
+                  <>
+                    <div className="ws-muted" style={{ marginTop: 10 }}>
+                      Top 3 aktuell
                     </div>
-                  ))}
-                </div>
+                    <Podium top3={top3} />
+                  </>
+                ) : (
+                  <>
+                    <div className="ws-muted" style={{ marginTop: 10 }}>
+                      Rangliste
+                    </div>
+                    <InGameScoreMiniList scoreboard={scoreboard} playerId={playerId} />
+                  </>
+                )}
               </Card>
             )}
 
@@ -1360,7 +1395,11 @@ export default function RoomClient({ code }: { code: string }) {
                 </div>
 
                 {isHost && (
-                  <button className="ws-btn ws-btn--ghost" style={{ marginTop: 14, width: "100%" }} onClick={hostFinalizeBanger}>
+                  <button
+                    className="ws-btn ws-btn--ghost"
+                    style={{ marginTop: 14, width: "100%" }}
+                    onClick={hostFinalizeBanger}
+                  >
                     Banger auswerten & weiter
                   </button>
                 )}
