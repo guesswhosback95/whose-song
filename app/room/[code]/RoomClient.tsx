@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   collection,
   deleteDoc,
@@ -60,18 +61,10 @@ type SongRoundStats = {
   correctCount: number;
 };
 
-const PLAYER_COLORS = [
-  "#F6E6A8",
-  "#F2C27B",
-  "#F7A6A1",
-  "#E86A5A",
-  "#C6B7E2",
-  "#CFEAF0",
-  "#8BB7DE",
-  "#7FC58E",
-  "#C9D87A",
-  "#FAF3E3",
-];
+// ✅ Banger Doc: enthält SongIndex, damit wir "zu spät" sauber erkennen
+type BangerDoc = { songOwnerId: string; songIndex: number; createdAt?: any };
+
+const PLAYER_COLORS = ["#F6E6A8", "#F2C27B", "#F7A6A1", "#E86A5A", "#C6B7E2", "#CFEAF0", "#8BB7DE", "#7FC58E", "#C9D87A", "#FAF3E3"];
 
 function spotifyEmbedUrlFromSpotifyUrl(url: string): string {
   return url.replace("https://open.spotify.com/", "https://open.spotify.com/embed/");
@@ -119,18 +112,12 @@ function ProgressBar({ value, max }: { value: number; max: number }) {
  * - normal: valueLabel="Punkte"
  * - Banger: valueLabel="Banger"
  */
-function Podium({
-  top3,
-  valueLabel = "Punkte",
-}: {
-  top3: Player[];
-  valueLabel?: string;
-}) {
+function Podium({ top3, valueLabel = "Punkte" }: { top3: Player[]; valueLabel?: string }) {
   const p1 = top3[0];
   const p2 = top3[1];
   const p3 = top3[2];
 
-  const valueOf = (p?: Player) => (p?.score ?? 0);
+  const valueOf = (p?: Player) => p?.score ?? 0;
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginTop: 12 }}>
@@ -200,15 +187,7 @@ function Podium({
   );
 }
 
-function InGameScoreHeader({
-  me,
-  myRank,
-  totalPlayers,
-}: {
-  me: Player | null;
-  myRank: number | null;
-  totalPlayers: number;
-}) {
+function InGameScoreHeader({ me, myRank, totalPlayers }: { me: Player | null; myRank: number | null; totalPlayers: number }) {
   const points = me?.score ?? 0;
 
   return (
@@ -227,13 +206,7 @@ function InGameScoreHeader({
   );
 }
 
-function InGameScoreMiniList({
-  scoreboard,
-  playerId,
-}: {
-  scoreboard: Player[];
-  playerId: string;
-}) {
+function InGameScoreMiniList({ scoreboard, playerId }: { scoreboard: Player[]; playerId: string }) {
   return (
     <div className="ws-list" style={{ marginTop: 12 }}>
       {scoreboard.map((p, idx) => (
@@ -259,7 +232,9 @@ function InGameScoreMiniList({
 }
 
 export default function RoomClient({ code }: { code: string }) {
-  const roomCode = code.toUpperCase();
+  const router = useRouter();
+
+  const roomCode = (code ?? "").toUpperCase();
   const playerId = useMemo(() => getOrCreatePlayerId(), []);
 
   const [room, setRoom] = useState<Room | null>(null);
@@ -284,9 +259,9 @@ export default function RoomClient({ code }: { code: string }) {
   const [myVote, setMyVote] = useState<{ guessedPlayerId: string } | null>(null);
   const [votes, setVotes] = useState<Record<string, { guessedPlayerId: string }>>({});
 
-  // 🔥 Banger während der Runde (1 pro Runde / Spieler)
-  const [bangers, setBangers] = useState<Record<string, { songOwnerId: string }>>({});
-  const [myBanger, setMyBanger] = useState<{ songOwnerId: string } | null>(null);
+  // 🔥 Banger pro Runde/Spieler (mit songIndex)
+  const [bangers, setBangers] = useState<Record<string, BangerDoc>>({});
+  const [myBanger, setMyBanger] = useState<BangerDoc | null>(null);
 
   // Host status
   const [hostStatus, setHostStatus] = useState("");
@@ -403,7 +378,6 @@ export default function RoomClient({ code }: { code: string }) {
     })();
   }, [room, roomCode, playerId]);
 
-  // ✅ saveProfile vergibt NICHT Host (Host ist room.hostId)
   async function saveProfile() {
     setJoinStatus("");
 
@@ -492,16 +466,7 @@ export default function RoomClient({ code }: { code: string }) {
       return;
     }
 
-    const votesRef = collection(
-      db,
-      "rooms",
-      roomCode,
-      "rounds",
-      String(room.roundNumber),
-      "songs",
-      String(room.indexInRound),
-      "votes"
-    );
+    const votesRef = collection(db, "rooms", roomCode, "rounds", String(room.roundNumber), "songs", String(room.indexInRound), "votes");
 
     const unsub = onSnapshot(votesRef, (snap) => {
       const map: Record<string, { guessedPlayerId: string }> = {};
@@ -516,7 +481,7 @@ export default function RoomClient({ code }: { code: string }) {
     return () => unsub();
   }, [room?.phase, room?.roundNumber, room?.indexInRound, roomCode, playerId, room]);
 
-  // --- Live: Bangers pro Runde ---
+  // --- Live: Bangers pro Runde (mit songIndex) ---
   useEffect(() => {
     if (!room) return;
 
@@ -534,8 +499,8 @@ export default function RoomClient({ code }: { code: string }) {
 
     const ref = collection(db, "rooms", roomCode, "rounds", String(room.roundNumber), "bangers");
     const unsub = onSnapshot(ref, (snap) => {
-      const map: Record<string, { songOwnerId: string }> = {};
-      snap.docs.forEach((d) => (map[d.id] = d.data() as any));
+      const map: Record<string, BangerDoc> = {};
+      snap.docs.forEach((d) => (map[d.id] = d.data() as BangerDoc));
       setBangers(map);
       setMyBanger(map[playerId] ?? null);
     });
@@ -652,15 +617,7 @@ export default function RoomClient({ code }: { code: string }) {
 
   async function writeSongMeta(roundNumber: number, index: number, ownerId: string, url: string) {
     const metaRef = doc(db, "rooms", roomCode, "rounds", String(roundNumber), "songs", String(index));
-    await setDoc(
-      metaRef,
-      {
-        ownerId,
-        url,
-        createdAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
+    await setDoc(metaRef, { ownerId, url, createdAt: serverTimestamp() }, { merge: true });
   }
 
   async function hostStartRound() {
@@ -703,16 +660,7 @@ export default function RoomClient({ code }: { code: string }) {
     const correctOwner = room.currentSongOwnerId;
     if (!correctOwner) return;
 
-    const votesRef = collection(
-      db,
-      "rooms",
-      roomCode,
-      "rounds",
-      String(room.roundNumber),
-      "songs",
-      String(room.indexInRound),
-      "votes"
-    );
+    const votesRef = collection(db, "rooms", roomCode, "rounds", String(room.roundNumber), "songs", String(room.indexInRound), "votes");
     const snap = await getDocs(votesRef);
 
     let correctCount = 0;
@@ -721,7 +669,6 @@ export default function RoomClient({ code }: { code: string }) {
     snap.docs.forEach((v) => {
       const voterId = v.id;
       const data = v.data() as { guessedPlayerId?: string };
-
       if (voterId === correctOwner) return;
       if (data.guessedPlayerId === correctOwner) {
         correctCount++;
@@ -783,7 +730,7 @@ export default function RoomClient({ code }: { code: string }) {
 
     const counts: Record<string, number> = {};
     snap.docs.forEach((d) => {
-      const songOwnerId = (d.data() as any)?.songOwnerId as string;
+      const songOwnerId = (d.data() as BangerDoc)?.songOwnerId as string;
       if (!songOwnerId) return;
       counts[songOwnerId] = (counts[songOwnerId] ?? 0) + 1;
     });
@@ -824,15 +771,23 @@ export default function RoomClient({ code }: { code: string }) {
     await batch.commit();
   }
 
+  // ✅ Helper: Löscht alle Docs einer Collection (ein Level tief)
+  async function deleteAllDocsInCollection(refPath: ReturnType<typeof collection>) {
+    const snap = await getDocs(refPath);
+    await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+  }
+
+  // ✅ Restart: Scores reset + Room reset + Round-Daten löschen (damit "Du hast abgegeben" NICHT hängen bleibt)
   async function hostRestartToLobby() {
     if (!isHost || !room) return;
 
+    const currentRound = room.roundNumber ?? 0;
+
+    // 1) Scores reset
     const batch = writeBatch(db);
+    players.forEach((p) => batch.update(doc(db, "rooms", roomCode, "players", p.id), { score: 0 }));
 
-    players.forEach((p) => {
-      batch.update(doc(db, "rooms", roomCode, "players", p.id), { score: 0 });
-    });
-
+    // 2) Room reset
     batch.update(doc(db, "rooms", roomCode), {
       phase: "lobby",
       roundNumber: 0,
@@ -844,9 +799,45 @@ export default function RoomClient({ code }: { code: string }) {
 
     await batch.commit();
 
+    // 3) Round Collections cleanup (nur aktuelle Runde reicht für deinen Bug)
+    //    -> entfernt alte submissions/songs/bangers/votes, damit ein neues Spiel sauber startet
+    if (currentRound >= 1) {
+      try {
+        const roundBase = ["rooms", roomCode, "rounds", String(currentRound)] as const;
+
+        await deleteAllDocsInCollection(collection(db, ...roundBase, "submissions"));
+        await deleteAllDocsInCollection(collection(db, ...roundBase, "bangers"));
+
+        // songs + votes
+        const songsRef = collection(db, ...roundBase, "songs");
+        const songsSnap = await getDocs(songsRef);
+
+        for (const s of songsSnap.docs) {
+          const votesRef = collection(db, ...roundBase, "songs", s.id, "votes");
+          await deleteAllDocsInCollection(votesRef);
+          await deleteDoc(s.ref);
+        }
+      } catch {
+        // wenn cleanup mal scheitert, ist es nicht kritisch – room ist trotzdem reset
+      }
+    }
+
+    // 4) UI reset local
+    setSongInput("");
+    setSongStatus("");
+    setSubmissions([]);
+    setVotes({});
+    setMyVote(null);
+    setSelectedGuessPlayerId("");
+    setBangers({});
+    setMyBanger(null);
+
     setToast("🔁 Neues Spiel bereit (Lobby)");
     setTimeout(() => setToast(""), 1200);
     setStatsOpen(false);
+
+    // optional: zurück zur Startseite
+    // router.replace("/");
   }
 
   // ---------- Player actions ----------
@@ -870,11 +861,7 @@ export default function RoomClient({ code }: { code: string }) {
 
     setOptimisticSubmittedThisRound(true);
 
-    await setDoc(
-      doc(db, "rooms", roomCode, "rounds", String(room.roundNumber), "submissions", playerId),
-      { url: normalized, createdAt: serverTimestamp() },
-      { merge: true }
-    );
+    await setDoc(doc(db, "rooms", roomCode, "rounds", String(room.roundNumber), "submissions", playerId), { url: normalized, createdAt: serverTimestamp() }, { merge: true });
 
     setSongInput("");
     setSongStatus("✅ Gespeichert!");
@@ -902,18 +889,7 @@ export default function RoomClient({ code }: { code: string }) {
       return;
     }
 
-    const voteRef = doc(
-      db,
-      "rooms",
-      roomCode,
-      "rounds",
-      String(room.roundNumber),
-      "songs",
-      String(room.indexInRound),
-      "votes",
-      playerId
-    );
-
+    const voteRef = doc(db, "rooms", roomCode, "rounds", String(room.roundNumber), "songs", String(room.indexInRound), "votes", playerId);
     await setDoc(voteRef, { guessedPlayerId: selectedGuessPlayerId, createdAt: serverTimestamp() }, { merge: true });
 
     setVoteStatus("✅ Stimme gespeichert!");
@@ -922,6 +898,14 @@ export default function RoomClient({ code }: { code: string }) {
     setTimeout(() => setVoteStatus(""), 1000);
   }
 
+  /**
+   * 🔥 Banger Regeln (Fix):
+   * - pro Runde nur 1x setzen (doc existiert -> keine neue Vergabe)
+   * - Zurücknehmen nur solange:
+   *   - phase === guessing
+   *   - myBanger.songIndex === room.indexInRound (also gleicher Song)
+   * - sobald Song weiter / reveal -> keine Rücknahme mehr
+   */
   async function toggleBanger() {
     if (!room) return;
     if (room.phase !== "guessing") return;
@@ -931,20 +915,31 @@ export default function RoomClient({ code }: { code: string }) {
 
     const ref = doc(db, "rooms", roomCode, "rounds", String(room.roundNumber), "bangers", playerId);
 
+    // falls schon gesetzt:
     if (myBanger) {
+      const sameSong = myBanger.songIndex === (room.indexInRound ?? 0);
+
+      if (!sameSong) {
+        setToast("⏱️ Zu spät: Banger ist für diesen Song fix.");
+        setTimeout(() => setToast(""), 1400);
+        return;
+      }
+
+      // ✅ nur während exakt diesem Song in guessing darf man zurücknehmen
       await deleteDoc(ref);
       setToast("🔥 Banger zurückgenommen");
       setTimeout(() => setToast(""), 1200);
       return;
     }
 
+    // noch nicht gesetzt -> vergeben
     if (ownerId === playerId) {
       setToast("❌ Kein Banger für dich selbst");
       setTimeout(() => setToast(""), 1200);
       return;
     }
 
-    await setDoc(ref, { songOwnerId: ownerId, createdAt: serverTimestamp() }, { merge: true });
+    await setDoc(ref, { songOwnerId: ownerId, songIndex: room.indexInRound ?? 0, createdAt: serverTimestamp() } satisfies BangerDoc, { merge: true });
     setToast("🔥 Banger vergeben");
     setTimeout(() => setToast(""), 1200);
   }
@@ -953,14 +948,23 @@ export default function RoomClient({ code }: { code: string }) {
 
   const bangerGivenCount = useMemo(() => Object.keys(bangers).length, [bangers]);
 
+  // ✅ Banger Button: nach Setzen ist er "verbraucht" – außer zum Zurücknehmen (nur gleicher Song/guessing)
   const canUseBangerButton = useMemo(() => {
     if (!room) return false;
     if (room.phase !== "guessing") return false;
     if (!room.currentSongUrl) return false;
     if (!room.currentSongOwnerId) return false;
 
-    if (myBanger) return true;
+    // Owner darf nie
     if (room.currentSongOwnerId === playerId) return false;
+
+    // wenn schon Banger gesetzt:
+    if (myBanger) {
+      // nur wenn gleicher Song, damit man ihn ggf. zurücknehmen kann
+      return myBanger.songIndex === (room.indexInRound ?? 0);
+    }
+
+    // noch nicht gesetzt -> darf setzen
     return true;
   }, [room, myBanger, playerId]);
 
@@ -968,7 +972,7 @@ export default function RoomClient({ code }: { code: string }) {
 
   const bangerActiveForCurrentSong = useMemo(() => {
     if (!room || !myBanger) return false;
-    return myBanger.songOwnerId === room.currentSongOwnerId;
+    return myBanger.songOwnerId === room.currentSongOwnerId && myBanger.songIndex === room.indexInRound;
   }, [room, myBanger]);
 
   // ✅ Round-Reveal: Song-Metas live laden
@@ -991,12 +995,7 @@ export default function RoomClient({ code }: { code: string }) {
         .map((d) => {
           const idx = Number(d.id);
           const data = d.data() as SongMeta;
-          return {
-            index: Number.isFinite(idx) ? idx : 0,
-            ownerId: data.ownerId,
-            url: data.url,
-            createdAt: data.createdAt,
-          };
+          return { index: Number.isFinite(idx) ? idx : 0, ownerId: data.ownerId, url: data.url, createdAt: data.createdAt };
         })
         .sort((a, b) => a.index - b.index);
 
@@ -1028,28 +1027,14 @@ export default function RoomClient({ code }: { code: string }) {
             .map((d) => {
               const idx = Number(d.id);
               const data = d.data() as SongMeta;
-              return {
-                index: Number.isFinite(idx) ? idx : 0,
-                ownerId: data.ownerId,
-                url: data.url,
-                createdAt: data.createdAt,
-              };
+              return { index: Number.isFinite(idx) ? idx : 0, ownerId: data.ownerId, url: data.url, createdAt: data.createdAt };
             })
             .sort((a, b) => a.index - b.index);
         }
 
         const stats: SongRoundStats[] = await Promise.all(
           songs.map(async (s) => {
-            const votesRef = collection(
-              db,
-              "rooms",
-              roomCode,
-              "rounds",
-              String(room.roundNumber),
-              "songs",
-              String(s.index),
-              "votes"
-            );
+            const votesRef = collection(db, "rooms", roomCode, "rounds", String(room.roundNumber), "songs", String(s.index), "votes");
             const vs = await getDocs(votesRef);
 
             const correctVoters: string[] = [];
@@ -1060,13 +1045,7 @@ export default function RoomClient({ code }: { code: string }) {
               if (data.guessedPlayerId === s.ownerId) correctVoters.push(voterId);
             });
 
-            return {
-              index: s.index,
-              ownerId: s.ownerId,
-              url: s.url,
-              correctVoterIds: correctVoters,
-              correctCount: correctVoters.length,
-            };
+            return { index: s.index, ownerId: s.ownerId, url: s.url, correctVoterIds: correctVoters, correctCount: correctVoters.length };
           })
         );
 
@@ -1105,18 +1084,13 @@ export default function RoomClient({ code }: { code: string }) {
 
   // ✅ Banger Scoreboard (als Player[] um Podium wiederzuverwenden)
   const bangerScoreboard = useMemo(() => {
-    const list = players.map((p) => ({
-      ...p,
-      score: bangerCounts[p.id] ?? 0, // hier: score = Banger-Anzahl
-    }));
-
+    const list = players.map((p) => ({ ...p, score: bangerCounts[p.id] ?? 0 }));
     list.sort((a, b) => {
       const sa = a.score ?? 0;
       const sb = b.score ?? 0;
       if (sb !== sa) return sb - sa;
       return 0;
     });
-
     return list;
   }, [players, bangerCounts]);
 
@@ -1128,9 +1102,7 @@ export default function RoomClient({ code }: { code: string }) {
         <header className="ws-header">
           <div>
             <div className="ws-title">Whose Song?</div>
-            <div className="ws-subtitle">
-              {room ? `${phaseLabel(room.phase)} · Runde ${room.roundNumber}/${room.totalRounds}` : "Lade…"}
-            </div>
+            <div className="ws-subtitle">{room ? `${phaseLabel(room.phase)} · Runde ${room.roundNumber}/${room.totalRounds}` : "Lade…"}</div>
           </div>
 
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -1158,13 +1130,7 @@ export default function RoomClient({ code }: { code: string }) {
             <div className="ws-muted">Name + Farbe festlegen. Das sehen die anderen Spieler.</div>
 
             <div className="ws-stack" style={{ marginTop: 10 }}>
-              <input
-                value={nameInput}
-                onChange={(e) => setNameInput(e.target.value)}
-                className="ws-input"
-                placeholder="z. B. Tommy"
-                style={{ fontSize: 16 }}
-              />
+              <input value={nameInput} onChange={(e) => setNameInput(e.target.value)} className="ws-input" placeholder="z. B. Tommy" style={{ fontSize: 16 }} />
 
               <div className="ws-color-preview">
                 <div className="ws-preview-avatar" style={{ backgroundColor: selectedColor }}>
@@ -1178,14 +1144,7 @@ export default function RoomClient({ code }: { code: string }) {
 
               <div className="ws-color-picker">
                 {PLAYER_COLORS.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    className={`ws-color-swatch ${selectedColor === color ? "is-selected" : ""}`}
-                    style={{ backgroundColor: color }}
-                    onClick={() => setSelectedColor(color)}
-                    aria-label={`Farbe ${color}`}
-                  />
+                  <button key={color} type="button" className={`ws-color-swatch ${selectedColor === color ? "is-selected" : ""}`} style={{ backgroundColor: color }} onClick={() => setSelectedColor(color)} aria-label={`Farbe ${color}`} />
                 ))}
               </div>
 
@@ -1260,15 +1219,7 @@ export default function RoomClient({ code }: { code: string }) {
                         <div className="ws-chip">{room.totalRounds ?? 1}</div>
                       </div>
 
-                      <input
-                        type="range"
-                        min={1}
-                        max={10}
-                        step={1}
-                        value={room.totalRounds ?? 1}
-                        onChange={(e) => hostSetTotalRounds(Number(e.target.value))}
-                        style={{ width: "100%" }}
-                      />
+                      <input type="range" min={1} max={10} step={1} value={room.totalRounds ?? 1} onChange={(e) => hostSetTotalRounds(Number(e.target.value))} style={{ width: "100%" }} />
 
                       <div className="ws-muted" style={{ display: "flex", justifyContent: "space-between" }}>
                         <span>1</span>
@@ -1321,15 +1272,7 @@ export default function RoomClient({ code }: { code: string }) {
                     <div className="ws-embed">
                       <div className="ws-chip">Du hast abgegeben ✅</div>
                       <div style={{ borderRadius: 16, overflow: "hidden", marginTop: 10 }}>
-                        <iframe
-                          title="Spotify Embed"
-                          src={spotifyEmbedUrlFromSpotifyUrl(mySubmission.url)}
-                          width="100%"
-                          height="152"
-                          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                          loading="lazy"
-                          style={{ borderRadius: 16, border: "0" }}
-                        />
+                        <iframe title="Spotify Embed" src={spotifyEmbedUrlFromSpotifyUrl(mySubmission.url)} width="100%" height="152" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" style={{ borderRadius: 16, border: "0" }} />
                       </div>
                     </div>
                   ) : (
@@ -1337,13 +1280,7 @@ export default function RoomClient({ code }: { code: string }) {
                   )}
 
                   <div className="ws-stack" style={{ marginTop: 12 }}>
-                    <input
-                      value={songInput}
-                      onChange={(e) => setSongInput(e.target.value)}
-                      className="ws-input"
-                      placeholder="https://open.spotify.com/track/…"
-                      style={{ fontSize: 16 }}
-                    />
+                    <input value={songInput} onChange={(e) => setSongInput(e.target.value)} className="ws-input" placeholder="https://open.spotify.com/track/…" style={{ fontSize: 16 }} />
                     <button className="ws-btn" onClick={submitMySong}>
                       Link speichern
                     </button>
@@ -1358,36 +1295,14 @@ export default function RoomClient({ code }: { code: string }) {
               <Card>
                 <div className="ws-row">
                   <div className="ws-card-title">Song</div>
-                  <div className="ws-chip">
-                    {room.songOrder?.length ? `Song ${room.indexInRound + 1}/${room.songOrder.length}` : ""}
-                  </div>
+                  <div className="ws-chip">{room.songOrder?.length ? `Song ${room.indexInRound + 1}/${room.songOrder.length}` : ""}</div>
                 </div>
 
-                <div
-                  style={{
-                    borderRadius: 16,
-                    overflow: "hidden",
-                    position: "relative",
-                    pointerEvents: isHost ? "auto" : "none",
-                    marginTop: 10,
-                  }}
-                >
-                  <iframe
-                    title="Spotify Embed"
-                    src={spotifyEmbedUrlFromSpotifyUrl(room.currentSongUrl)}
-                    width="100%"
-                    height="152"
-                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                    loading="lazy"
-                    style={{ borderRadius: 16, border: "0" }}
-                  />
+                <div style={{ borderRadius: 16, overflow: "hidden", position: "relative", pointerEvents: isHost ? "auto" : "none", marginTop: 10 }}>
+                  <iframe title="Spotify Embed" src={spotifyEmbedUrlFromSpotifyUrl(room.currentSongUrl)} width="100%" height="152" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" style={{ borderRadius: 16, border: "0" }} />
                 </div>
 
-                {!isHost && (
-                  <div className="ws-muted" style={{ marginTop: 8 }}>
-                    (Nur der Host kann den Song starten.)
-                  </div>
-                )}
+                {!isHost && <div className="ws-muted" style={{ marginTop: 8 }}>(Nur der Host kann den Song starten.)</div>}
 
                 <div className="ws-row" style={{ marginTop: 10, alignItems: "flex-end", gap: 10 }}>
                   <a href={room.currentSongUrl} target="_blank" rel="noreferrer" className="ws-link">
@@ -1406,7 +1321,9 @@ export default function RoomClient({ code }: { code: string }) {
                         room.phase !== "guessing"
                           ? "Banger nur während 'Raten' möglich"
                           : myBanger
-                          ? "Klick = Banger zurücknehmen"
+                          ? myBanger.songIndex === room.indexInRound
+                            ? "Klick = Banger zurücknehmen (nur solange dieser Song läuft)"
+                            : "Banger bereits vergeben (fix)"
                           : room.currentSongOwnerId === playerId
                           ? "Du kannst dir selbst keinen Banger geben"
                           : "Banger vergeben"
@@ -1429,13 +1346,13 @@ export default function RoomClient({ code }: { code: string }) {
                     <div className="ws-muted" style={{ fontSize: 12, textAlign: "right" }}>
                       {room.phase === "guessing" ? (
                         myBanger ? (
-                          <>
-                            🔥 gesetzt (Klick = zurücknehmen) · vergeben: {bangerGivenCount}/{players.length}
-                          </>
+                          myBanger.songIndex === room.indexInRound ? (
+                            <>🔥 gesetzt (nur jetzt zurücknehmbar) · vergeben: {bangerGivenCount}/{players.length}</>
+                          ) : (
+                            <>🔥 gesetzt (fix) · vergeben: {bangerGivenCount}/{players.length}</>
+                          )
                         ) : (
-                          <>
-                            🔥 vergeben: {bangerGivenCount}/{players.length}
-                          </>
+                          <>🔥 vergeben: {bangerGivenCount}/{players.length}</>
                         )
                       ) : (
                         <>🔥 vergeben: {bangerGivenCount}/{players.length}</>
@@ -1468,13 +1385,7 @@ export default function RoomClient({ code }: { code: string }) {
                             const selected = selectedGuessPlayerId === p.id;
                             const disabled = !!myVote;
                             return (
-                              <button
-                                key={p.id}
-                                className={`ws-playerbtn ${selected ? "is-selected" : ""}`}
-                                onClick={() => !disabled && setSelectedGuessPlayerId(p.id)}
-                                disabled={disabled}
-                                type="button"
-                              >
+                              <button key={p.id} className={`ws-playerbtn ${selected ? "is-selected" : ""}`} onClick={() => !disabled && setSelectedGuessPlayerId(p.id)} disabled={disabled} type="button">
                                 <div className="ws-playerbtn__avatar" style={{ backgroundColor: p.color }}>
                                   {(p.name?.[0] ?? "?").toUpperCase()}
                                 </div>
@@ -1488,12 +1399,7 @@ export default function RoomClient({ code }: { code: string }) {
                           })}
                       </div>
 
-                      <button
-                        className="ws-btn"
-                        style={{ marginTop: 16 }}
-                        onClick={submitVote}
-                        disabled={!!myVote || !selectedGuessPlayerId}
-                      >
+                      <button className="ws-btn" style={{ marginTop: 16 }} onClick={submitVote} disabled={!!myVote || !selectedGuessPlayerId}>
                         {myVote ? "Stimme abgegeben ✅" : "Stimme abgeben"}
                       </button>
 
@@ -1505,12 +1411,7 @@ export default function RoomClient({ code }: { code: string }) {
                   )}
 
                   {isHost && (
-                    <button
-                      className="ws-btn ws-btn--ghost"
-                      onClick={hostRevealAndScore}
-                      disabled={!allVotesIn}
-                      style={{ marginTop: 12 }}
-                    >
+                    <button className="ws-btn ws-btn--ghost" onClick={hostRevealAndScore} disabled={!allVotesIn} style={{ marginTop: 12 }}>
                       Zwischenstand zeigen (Host) {allVotesIn ? "" : `(${votedCount}/${requiredVotes})`}
                     </button>
                   )}
@@ -1523,16 +1424,7 @@ export default function RoomClient({ code }: { code: string }) {
               <Card>
                 <div className="ws-card-title">Zwischenstand</div>
 
-                <div
-                  className="ws-reveal-hero"
-                  style={{
-                    backgroundColor: "rgba(0,0,0,.03)",
-                    borderRadius: 22,
-                    position: "relative",
-                    overflow: "hidden",
-                  }}
-                >
-                  {/* ✅ Key-Fix: keine doppelten keys mehr */}
+                <div className="ws-reveal-hero" style={{ backgroundColor: "rgba(0,0,0,.03)", borderRadius: 22, position: "relative", overflow: "hidden" }}>
                   {myRevealPoints > 0 && (
                     <div key={`confetti-${revealFxKey}`} className="ws-confetti" aria-hidden="true">
                       {Array.from({ length: 18 }).map((_, idx) => (
@@ -1553,11 +1445,7 @@ export default function RoomClient({ code }: { code: string }) {
                   <div className="ws-reveal-name">{revealCorrectCount}</div>
 
                   {myRevealPointsText && (
-                    <div
-                      key={`points-${revealFxKey}`}
-                      className="ws-points-pop"
-                      style={{ backgroundColor: "rgba(0,0,0,.85)" }}
-                    >
+                    <div key={`points-${revealFxKey}`} className="ws-points-pop" style={{ backgroundColor: "rgba(0,0,0,.85)" }}>
                       {myRevealPointsText}
                     </div>
                   )}
@@ -1567,7 +1455,7 @@ export default function RoomClient({ code }: { code: string }) {
                   </div>
 
                   <div className="ws-muted" style={{ marginTop: 10, fontSize: 13 }}>
-                    🔥 Banger kann nur während “Raten” gesetzt werden.
+                    🔥 Banger ist ab jetzt fix (kein Zurücknehmen nach Reveal).
                   </div>
                 </div>
               </Card>
@@ -1575,141 +1463,123 @@ export default function RoomClient({ code }: { code: string }) {
 
             {/* ROUNDREVEAL */}
             {room.phase === "roundreveal" && (
-              <>
-                <Card>
-                  <div className="ws-row">
-                    <div className="ws-card-title">Runden-Auflösung</div>
-                    <div className="ws-chip">{room.songOrder?.length ? `${room.songOrder.length} Songs` : ""}</div>
+              <Card>
+                <div className="ws-row">
+                  <div className="ws-card-title">Runden-Auflösung</div>
+                  <div className="ws-chip">{room.songOrder?.length ? `${room.songOrder.length} Songs` : ""}</div>
+                </div>
+
+                <div className="ws-muted" style={{ marginTop: 8 }}>
+                  Jetzt wird gezeigt, wem welcher Song gehört – plus wie viele richtig lagen.
+                </div>
+
+                {roundStatsError && (
+                  <div className="ws-muted" style={{ marginTop: 10 }}>
+                    ❌ Fehler beim Laden: {roundStatsError}
                   </div>
+                )}
 
-                  <div className="ws-muted" style={{ marginTop: 8 }}>
-                    Jetzt wird gezeigt, wem welcher Song gehört – plus wie viele richtig lagen.
-                  </div>
+                {roundStatsLoading && <div className="ws-muted" style={{ marginTop: 10 }}>Lade Auflösung…</div>}
 
-                  {roundStatsError && (
-                    <div className="ws-muted" style={{ marginTop: 10 }}>
-                      ❌ Fehler beim Laden: {roundStatsError}
-                    </div>
-                  )}
+                {!roundStatsLoading && roundStats.length > 0 && (
+                  <div className="ws-stack" style={{ marginTop: 12 }}>
+                    {roundStats.map((s) => {
+                      const owner = playersById[s.ownerId];
+                      const ownerName = owner?.name ?? "Unbekannt";
+                      const ownerColor = owner?.color ?? "rgba(0,0,0,.08)";
 
-                  {roundStatsLoading && (
-                    <div className="ws-muted" style={{ marginTop: 10 }}>
-                      Lade Auflösung…
-                    </div>
-                  )}
+                      const correctNames = s.correctVoterIds.map((id) => playersById[id]?.name).filter(Boolean) as string[];
 
-                  {!roundStatsLoading && roundStats.length > 0 && (
-                    <div className="ws-stack" style={{ marginTop: 12 }}>
-                      {roundStats.map((s) => {
-                        const owner = playersById[s.ownerId];
-                        const ownerName = owner?.name ?? "Unbekannt";
-                        const ownerColor = owner?.color ?? "rgba(0,0,0,.08)";
+                      return (
+                        <div key={s.index} className="ws-list-item" style={{ alignItems: "flex-start" }}>
+                          <div className="ws-list-left" style={{ alignItems: "flex-start" }}>
+                            <div className="ws-chip" style={{ minWidth: 64, textAlign: "center" }}>
+                              Song {s.index + 1}
+                            </div>
 
-                        const correctNames = s.correctVoterIds
-                          .map((id) => playersById[id]?.name)
-                          .filter(Boolean) as string[];
-
-                        return (
-                          <div key={s.index} className="ws-list-item" style={{ alignItems: "flex-start" }}>
-                            <div className="ws-list-left" style={{ alignItems: "flex-start" }}>
-                              <div className="ws-chip" style={{ minWidth: 64, textAlign: "center" }}>
-                                Song {s.index + 1}
+                            <div style={{ display: "grid", gap: 8 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                <div className="ws-avatar" style={{ backgroundColor: ownerColor }}>
+                                  {(ownerName?.[0] ?? "?").toUpperCase()}
+                                </div>
+                                <div className="ws-name">
+                                  {ownerName} {owner?.isHost ? <span className="ws-tag">Host</span> : null}
+                                </div>
                               </div>
 
-                              <div style={{ display: "grid", gap: 8 }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                  <div className="ws-avatar" style={{ backgroundColor: ownerColor }}>
-                                    {(ownerName?.[0] ?? "?").toUpperCase()}
-                                  </div>
-                                  <div className="ws-name">
-                                    {ownerName} {owner?.isHost ? <span className="ws-tag">Host</span> : null}
-                                  </div>
-                                </div>
+                              <div style={{ borderRadius: 14, overflow: "hidden" }}>
+                                <iframe title={`Spotify Embed ${s.index}`} src={spotifyEmbedUrlFromSpotifyUrl(s.url)} width="100%" height="152" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" style={{ borderRadius: 14, border: "0" }} />
+                              </div>
 
-                                <div style={{ borderRadius: 14, overflow: "hidden" }}>
-                                  <iframe
-                                    title={`Spotify Embed ${s.index}`}
-                                    src={spotifyEmbedUrlFromSpotifyUrl(s.url)}
-                                    width="100%"
-                                    height="152"
-                                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                                    loading="lazy"
-                                    style={{ borderRadius: 14, border: "0" }}
-                                  />
-                                </div>
-
-                                <div className="ws-muted" style={{ fontSize: 13 }}>
-                                  Richtig geraten: <b>{s.correctCount}</b>
-                                  {correctNames.length > 0 ? ` · (${correctNames.join(", ")})` : ""}
-                                </div>
+                              <div className="ws-muted" style={{ fontSize: 13 }}>
+                                Richtig geraten: <b>{s.correctCount}</b>
+                                {correctNames.length > 0 ? ` · (${correctNames.join(", ")})` : ""}
                               </div>
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </Card>
-              </>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {isHost && (
+                  <button className="ws-btn ws-btn--ghost" style={{ marginTop: 14, width: "100%" }} onClick={hostGoToBanger}>
+                    Zur Banger-Auswertung
+                  </button>
+                )}
+              </Card>
             )}
 
             {/* BANGER (mit Podium + Ranking) */}
             {room.phase === "banger" && (
-              <>
-                <Card>
-                  <div className="ws-row">
-                    <div className="ws-card-title">Banger-Rangliste 🔥</div>
-                    <div className="ws-chip">
-                      vergeben: {bangerGivenCount}/{players.length}
-                    </div>
+              <Card>
+                <div className="ws-row">
+                  <div className="ws-card-title">Banger-Rangliste 🔥</div>
+                  <div className="ws-chip">
+                    vergeben: {bangerGivenCount}/{players.length}
                   </div>
+                </div>
 
-                  <div className="ws-muted" style={{ marginTop: 8 }}>
-                    Hier siehst du die Banger-Verteilung dieser Runde.
-                  </div>
+                <div className="ws-muted" style={{ marginTop: 8 }}>
+                  Hier siehst du die Banger-Verteilung dieser Runde.
+                </div>
 
-                  {/* Podium mit Banger-Anzahl */}
-                  <Podium top3={bangerTop3} valueLabel="Banger" />
+                <Podium top3={bangerTop3} valueLabel="Banger" />
 
-                  {/* komplette Rangliste */}
-                  <div className="ws-muted" style={{ marginTop: 12 }}>
-                    Rangliste (Banger)
-                  </div>
-                  <div className="ws-list" style={{ marginTop: 10 }}>
-                    {bangerScoreboard.map((p, idx) => (
-                      <div key={p.id} className="ws-list-item">
-                        <div className="ws-list-left">
-                          <div className="ws-chip" style={{ minWidth: 44, textAlign: "center" }}>
-                            #{idx + 1}
-                          </div>
-                          <div className="ws-avatar" style={{ backgroundColor: p.color }}>
-                            {(p.name?.[0] ?? "?").toUpperCase()}
-                          </div>
-                          <div className="ws-name">
-                            {p.name} {p.isHost ? <span className="ws-tag">Host</span> : null}
-                            {p.id === playerId ? <span className="ws-you">du</span> : null}
-                          </div>
+                <div className="ws-muted" style={{ marginTop: 12 }}>
+                  Rangliste (Banger)
+                </div>
+                <div className="ws-list" style={{ marginTop: 10 }}>
+                  {bangerScoreboard.map((p, idx) => (
+                    <div key={p.id} className="ws-list-item">
+                      <div className="ws-list-left">
+                        <div className="ws-chip" style={{ minWidth: 44, textAlign: "center" }}>
+                          #{idx + 1}
                         </div>
-                        <div className="ws-chip">{p.score ?? 0}</div>
+                        <div className="ws-avatar" style={{ backgroundColor: p.color }}>
+                          {(p.name?.[0] ?? "?").toUpperCase()}
+                        </div>
+                        <div className="ws-name">
+                          {p.name} {p.isHost ? <span className="ws-tag">Host</span> : null}
+                          {p.id === playerId ? <span className="ws-you">du</span> : null}
+                        </div>
                       </div>
-                    ))}
-                  </div>
+                      <div className="ws-chip">{p.score ?? 0}</div>
+                    </div>
+                  ))}
+                </div>
 
-                  <div className="ws-muted" style={{ marginTop: 10 }}>
-                    Bonus (+5) gibt es nur bei einem eindeutigen Sieger. Danach geht’s automatisch in die nächste Runde / zum Ende.
-                  </div>
+                <div className="ws-muted" style={{ marginTop: 10 }}>
+                  Bonus (+5) gibt es nur bei einem eindeutigen Sieger. Danach geht’s automatisch weiter.
+                </div>
 
-                  {isHost && (
-                    <button
-                      className="ws-btn ws-btn--ghost"
-                      style={{ marginTop: 14, width: "100%" }}
-                      onClick={hostFinalizeBanger}
-                    >
-                      Banger auswerten & weiter
-                    </button>
-                  )}
-                </Card>
-              </>
+                {isHost && (
+                  <button className="ws-btn ws-btn--ghost" style={{ marginTop: 14, width: "100%" }} onClick={hostFinalizeBanger}>
+                    Banger auswerten & weiter
+                  </button>
+                )}
+              </Card>
             )}
 
             {/* FINISHED */}
@@ -1719,35 +1589,6 @@ export default function RoomClient({ code }: { code: string }) {
                 <div className="ws-muted">Podium & Ergebnisübersicht</div>
 
                 <Podium top3={top3} valueLabel="Punkte" />
-
-                <div style={{ marginTop: 14 }}>
-                  <div className="ws-row">
-                    <div className="ws-card-title" style={{ marginBottom: 0 }}>
-                      Rangliste
-                    </div>
-                    <div className="ws-chip">Final</div>
-                  </div>
-
-                  <div className="ws-list" style={{ marginTop: 10 }}>
-                    {scoreboard.map((p, idx) => (
-                      <div key={p.id} className="ws-list-item">
-                        <div className="ws-list-left">
-                          <div className="ws-chip" style={{ minWidth: 44, textAlign: "center" }}>
-                            #{idx + 1}
-                          </div>
-                          <div className="ws-avatar" style={{ backgroundColor: p.color }}>
-                            {(p.name?.[0] ?? "?").toUpperCase()}
-                          </div>
-                          <div className="ws-name">
-                            {p.name} {p.isHost ? <span className="ws-tag">Host</span> : null}
-                            {p.id === playerId ? <span className="ws-you">du</span> : null}
-                          </div>
-                        </div>
-                        <div className="ws-name">{p.score ?? 0}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
 
                 <div style={{ marginTop: 12 }}>
                   <button className="ws-btn ws-btn--ghost" onClick={() => setStatsOpen((s) => !s)}>
@@ -1768,7 +1609,7 @@ export default function RoomClient({ code }: { code: string }) {
                     </button>
                   )}
 
-                  <button className="ws-btn ws-btn--ghost" onClick={() => (window.location.href = "/")}>
+                  <button className="ws-btn ws-btn--ghost" onClick={() => router.replace("/")}>
                     ⬅️ Zur Startseite
                   </button>
                 </div>
