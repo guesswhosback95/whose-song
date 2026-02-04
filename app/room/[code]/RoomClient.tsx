@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -904,25 +905,32 @@ export default function RoomClient({ code }: { code: string }) {
     setTimeout(() => setVoteStatus(""), 1000);
   }
 
-  // 🔥 Banger vergeben (während Song) -> 1 pro Runde, nicht für sich selbst
-  async function submitBanger() {
+  // 🔥 Banger Toggle: vergeben ODER zurücknehmen
+  async function toggleBanger() {
     if (!room) return;
-
-    if (myBanger) return; // schon vergeben
     if (room.phase !== "guessing" && room.phase !== "reveal") return;
 
     const ownerId = room.currentSongOwnerId;
     if (!ownerId) return;
 
+    const ref = doc(db, "rooms", roomCode, "rounds", String(room.roundNumber), "bangers", playerId);
+
+    // ✅ Wenn schon vergeben -> zurücknehmen (doc löschen)
+    if (myBanger) {
+      await deleteDoc(ref);
+      setToast("🔥 Banger zurückgenommen");
+      setTimeout(() => setToast(""), 1200);
+      return;
+    }
+
+    // ✅ Sonst vergeben (nicht für sich selbst)
     if (ownerId === playerId) {
       setToast("❌ Kein Banger für dich selbst");
       setTimeout(() => setToast(""), 1200);
       return;
     }
 
-    const ref = doc(db, "rooms", roomCode, "rounds", String(room.roundNumber), "bangers", playerId);
     await setDoc(ref, { songOwnerId: ownerId, createdAt: serverTimestamp() }, { merge: true });
-
     setToast("🔥 Banger vergeben");
     setTimeout(() => setToast(""), 1200);
   }
@@ -932,18 +940,27 @@ export default function RoomClient({ code }: { code: string }) {
   // Banger UI Counter (optional)
   const bangerGivenCount = useMemo(() => Object.keys(bangers).length, [bangers]);
 
-  // 🔥 Button Status (UI-only)
-  const canBanger = useMemo(() => {
+  // 🔥 Button State
+  const canUseBangerButton = useMemo(() => {
     if (!room) return false;
     if (room.phase !== "guessing" && room.phase !== "reveal") return false;
     if (!room.currentSongUrl) return false;
     if (!room.currentSongOwnerId) return false;
-    if (myBanger) return false;
+
+    // Wenn bereits vergeben -> Button darf genutzt werden (zum zurücknehmen)
+    if (myBanger) return true;
+
+    // Sonst: vergeben nur wenn nicht self
     if (room.currentSongOwnerId === playerId) return false;
     return true;
   }, [room, myBanger, playerId]);
 
-  const bangerDisabled = !canBanger;
+  const bangerDisabled = !canUseBangerButton;
+
+  const bangerActiveForCurrentSong = useMemo(() => {
+    if (!room || !myBanger) return false;
+    return myBanger.songOwnerId === room.currentSongOwnerId;
+  }, [room, myBanger]);
 
   return (
     <main className="ws-page">
@@ -957,7 +974,6 @@ export default function RoomClient({ code }: { code: string }) {
           </div>
 
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            {/* ✅ Nach Spielstart IMMER oben rechts als Badge */}
             {room && !showBigRoomBar && (
               <button className="ws-roomcode-mini-btn" onClick={copyRoomCode} title="Raumcode kopieren">
                 {roomCode}
@@ -966,7 +982,6 @@ export default function RoomClient({ code }: { code: string }) {
           </div>
         </header>
 
-        {/* ✅ großer Raumcode nur in Lobby */}
         {showBigRoomBar && <RoomCodeBar roomCode={roomCode} />}
 
         {error && (
@@ -1030,7 +1045,6 @@ export default function RoomClient({ code }: { code: string }) {
               <Card>
                 <InGameScoreHeader me={me} myRank={myRank} totalPlayers={players.length} />
 
-                {/* Podium nur wenn >=3 Spieler, sonst kompakte Liste */}
                 {scoreboard.length >= 3 ? (
                   <>
                     <div className="ws-muted" style={{ marginTop: 10 }}>
@@ -1171,7 +1185,7 @@ export default function RoomClient({ code }: { code: string }) {
               </>
             )}
 
-            {/* SONG CARD (🔥 rechts unten über Counter) */}
+            {/* SONG CARD */}
             {(room.phase === "guessing" || room.phase === "reveal") && room.currentSongUrl && (
               <Card>
                 <div className="ws-row">
@@ -1181,7 +1195,6 @@ export default function RoomClient({ code }: { code: string }) {
                   </div>
                 </div>
 
-                {/* ✅ Nur Host darf Spotify-Embed bedienen (Play etc.) */}
                 <div
                   style={{
                     borderRadius: 16,
@@ -1208,15 +1221,7 @@ export default function RoomClient({ code }: { code: string }) {
                   </div>
                 )}
 
-                {/* Bottom row: Link links, rechts Button über Counter */}
-                <div
-                  className="ws-row"
-                  style={{
-                    marginTop: 10,
-                    alignItems: "flex-end",
-                    gap: 10,
-                  }}
-                >
+                <div className="ws-row" style={{ marginTop: 10, alignItems: "flex-end", gap: 10 }}>
                   <a href={room.currentSongUrl} target="_blank" rel="noreferrer" className="ws-link">
                     In Spotify öffnen
                   </a>
@@ -1226,12 +1231,12 @@ export default function RoomClient({ code }: { code: string }) {
                       type="button"
                       onClick={() => {
                         if (bangerDisabled) return;
-                        submitBanger();
+                        toggleBanger();
                       }}
                       disabled={bangerDisabled}
                       title={
                         myBanger
-                          ? "Banger bereits vergeben (diese Runde)"
+                          ? "Klick = Banger zurücknehmen"
                           : room.currentSongOwnerId === playerId
                           ? "Du kannst dir selbst keinen Banger geben"
                           : "Banger vergeben"
@@ -1243,13 +1248,24 @@ export default function RoomClient({ code }: { code: string }) {
                         borderRadius: 14,
                         opacity: bangerDisabled ? 0.5 : 1,
                         pointerEvents: bangerDisabled ? "none" : "auto",
+                        borderColor: myBanger ? "rgba(0,0,0,.38)" : undefined,
+                        outline: bangerActiveForCurrentSong ? "3px solid rgba(0,0,0,.65)" : "none",
+                        background: myBanger ? "rgba(0,0,0,.04)" : undefined,
                       }}
                     >
                       🔥
                     </button>
 
                     <div className="ws-muted" style={{ fontSize: 12, textAlign: "right" }}>
-                      🔥 vergeben: {bangerGivenCount}/{players.length}
+                      {myBanger ? (
+                        <>
+                          🔥 gesetzt (Klick = zurücknehmen) · vergeben: {bangerGivenCount}/{players.length}
+                        </>
+                      ) : (
+                        <>
+                          🔥 vergeben: {bangerGivenCount}/{players.length}
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1406,7 +1422,7 @@ export default function RoomClient({ code }: { code: string }) {
               </Card>
             )}
 
-            {/* FINISHED (Endscreen + Podium + Neustart) */}
+            {/* FINISHED */}
             {room.phase === "finished" && (
               <Card>
                 <div className="ws-card-title">Spiel beendet 🏁</div>
