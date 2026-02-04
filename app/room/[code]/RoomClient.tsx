@@ -102,13 +102,6 @@ function ProgressBar({ value, max }: { value: number; max: number }) {
   );
 }
 
-function medalForRank(rank: number) {
-  if (rank === 1) return "🥇";
-  if (rank === 2) return "🥈";
-  if (rank === 3) return "🥉";
-  return "•";
-}
-
 function Podium({ top3 }: { top3: Player[] }) {
   const p1 = top3[0];
   const p2 = top3[1];
@@ -908,7 +901,9 @@ export default function RoomClient({ code }: { code: string }) {
   // 🔥 Banger Toggle: vergeben ODER zurücknehmen
   async function toggleBanger() {
     if (!room) return;
-    if (room.phase !== "guessing" && room.phase !== "reveal") return;
+
+    // ✅ Regel: NUR in guessing
+    if (room.phase !== "guessing") return;
 
     const ownerId = room.currentSongOwnerId;
     if (!ownerId) return;
@@ -940,10 +935,10 @@ export default function RoomClient({ code }: { code: string }) {
   // Banger UI Counter (optional)
   const bangerGivenCount = useMemo(() => Object.keys(bangers).length, [bangers]);
 
-  // 🔥 Button State
+  // 🔥 Button State (NUR guessing)
   const canUseBangerButton = useMemo(() => {
     if (!room) return false;
-    if (room.phase !== "guessing" && room.phase !== "reveal") return false;
+    if (room.phase !== "guessing") return false;
     if (!room.currentSongUrl) return false;
     if (!room.currentSongOwnerId) return false;
 
@@ -1120,24 +1115,32 @@ export default function RoomClient({ code }: { code: string }) {
               </>
             )}
 
-            {/* COLLECT */}
+            {/* COLLECT (entschlackt) */}
             {room.phase === "collect" && (
               <>
                 <Card>
-                  <div className="ws-card-title">Genre-Karte zieht ihr vor Ort 🎴</div>
-                  <div className="ws-muted">Dann trägt jeder genau 1 Spotify-Link ein.</div>
-
-                  <div className="ws-row" style={{ marginTop: 10 }}>
-                    <div className="ws-muted">Songs abgegeben</div>
+                  <div className="ws-row" style={{ alignItems: "baseline" }}>
+                    <div>
+                      <div className="ws-card-title" style={{ marginBottom: 4 }}>
+                        Songs einreichen
+                      </div>
+                      <div className="ws-muted" style={{ fontSize: 13 }}>
+                        Jeder reicht genau 1 Spotify-Link ein. Abgaben sind anonym.
+                      </div>
+                    </div>
                     <div className="ws-chip">
                       {effectiveSubmissionsCount}/{playersCount}
                     </div>
                   </div>
 
-                  <ProgressBar value={effectiveSubmissionsCount} max={playersCount} />
-                  <div className="ws-muted" style={{ marginTop: 8 }}>
-                    (Anonym – es wird nicht angezeigt, wer abgegeben hat.)
+                  <div className="ws-row" style={{ marginTop: 10 }}>
+                    <div className="ws-muted">Songs abgegeben</div>
+                    <div className="ws-muted" style={{ fontSize: 13 }}>
+                      (Anonym)
+                    </div>
                   </div>
+
+                  <ProgressBar value={effectiveSubmissionsCount} max={playersCount} />
 
                   {hostStatus && (
                     <div className="ws-muted" style={{ marginTop: 8 }}>
@@ -1152,7 +1155,7 @@ export default function RoomClient({ code }: { code: string }) {
                   {mySubmission ? (
                     <div className="ws-embed">
                       <div className="ws-chip">Du hast abgegeben ✅</div>
-                      <div style={{ borderRadius: 16, overflow: "hidden" }}>
+                      <div style={{ borderRadius: 16, overflow: "hidden", marginTop: 10 }}>
                         <iframe
                           title="Spotify Embed"
                           src={spotifyEmbedUrlFromSpotifyUrl(mySubmission.url)}
@@ -1226,6 +1229,7 @@ export default function RoomClient({ code }: { code: string }) {
                     In Spotify öffnen
                   </a>
 
+                  {/* 🔥 Banger nur in guessing */}
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
                     <button
                       type="button"
@@ -1235,7 +1239,9 @@ export default function RoomClient({ code }: { code: string }) {
                       }}
                       disabled={bangerDisabled}
                       title={
-                        myBanger
+                        room.phase !== "guessing"
+                          ? "Banger nur während 'Raten' möglich"
+                          : myBanger
                           ? "Klick = Banger zurücknehmen"
                           : room.currentSongOwnerId === playerId
                           ? "Du kannst dir selbst keinen Banger geben"
@@ -1257,14 +1263,18 @@ export default function RoomClient({ code }: { code: string }) {
                     </button>
 
                     <div className="ws-muted" style={{ fontSize: 12, textAlign: "right" }}>
-                      {myBanger ? (
-                        <>
-                          🔥 gesetzt (Klick = zurücknehmen) · vergeben: {bangerGivenCount}/{players.length}
-                        </>
+                      {room.phase === "guessing" ? (
+                        myBanger ? (
+                          <>
+                            🔥 gesetzt (Klick = zurücknehmen) · vergeben: {bangerGivenCount}/{players.length}
+                          </>
+                        ) : (
+                          <>
+                            🔥 vergeben: {bangerGivenCount}/{players.length}
+                          </>
+                        )
                       ) : (
-                        <>
-                          🔥 vergeben: {bangerGivenCount}/{players.length}
-                        </>
+                        <>🔥 vergeben: {bangerGivenCount}/{players.length}</>
                       )}
                     </div>
                   </div>
@@ -1383,13 +1393,17 @@ export default function RoomClient({ code }: { code: string }) {
                     <div className="ws-reveal-name">{revealOwner.name}</div>
 
                     {myRevealPointsText && (
-                      <div className="ws-points-pop" style={{ backgroundColor: revealOwner.color }}>
+                      <div key={revealFxKey} className="ws-points-pop" style={{ backgroundColor: revealOwner.color }}>
                         {myRevealPointsText}
                       </div>
                     )}
 
                     <div className="ws-muted" style={{ marginTop: 6 }}>
                       Richtig geraten: {revealCorrectCount}
+                    </div>
+
+                    <div className="ws-muted" style={{ marginTop: 8, fontSize: 13 }}>
+                      🔥 Banger kann nur während “Raten” gesetzt werden.
                     </div>
                   </div>
                 )}
