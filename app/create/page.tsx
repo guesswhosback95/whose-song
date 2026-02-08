@@ -40,7 +40,7 @@ export default function CreatePage() {
 
       await setDoc(doc(db, "rooms", code), {
         phase: "lobby",
-        hostId: playerId, // ✅ HOST WIRD HIER FEST GESETZT
+        hostId: playerId,
 
         totalRounds: 1,
         roundNumber: 0,
@@ -49,6 +49,9 @@ export default function CreatePage() {
         songOrder: [],
         currentSongUrl: "",
         currentSongOwnerId: "",
+
+        // ✅ NEW default
+        bangerEnabled: false,
 
         createdAt: serverTimestamp(),
       });
@@ -64,15 +67,17 @@ export default function CreatePage() {
       <div className="ws-container">
         <div className="ws-card">
           <div className="ws-card-title">Neues Spiel</div>
-          <div className="ws-muted">
-            Erstelle einen Raum und lade deine Freunde ein.
-          </div>
+          <div className="ws-muted">Erstelle einen Raum und lade deine Freunde ein.</div>
 
           <button className="ws-btn" style={{ marginTop: 16 }} onClick={createRoom}>
             Raum erstellen
           </button>
 
-          {status && <div className="ws-muted" style={{ marginTop: 12 }}>{status}</div>}
+          {status && (
+            <div className="ws-muted" style={{ marginTop: 12 }}>
+              {status}
+            </div>
+          )}
         </div>
       </div>
     </main>
