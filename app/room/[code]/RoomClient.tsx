@@ -564,12 +564,11 @@ export default function RoomClient({ code }: { code: string }) {
   // ✅ reset fake-owner button per song
   useEffect(() => {
     if (!room) return;
-    const key = `${room.roundNumber}:${room.indexInRound}`;
     setFakeOwnerSubmittedKey("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room?.roundNumber, room?.indexInRound]);
 
-  // ✅ Live: Banger votes (only in banger phase)
+  // ✅ Live: Banger votes (also needed in roundreveal for "Erhaltene Banger")
   useEffect(() => {
     if (!room) return;
 
@@ -579,7 +578,8 @@ export default function RoomClient({ code }: { code: string }) {
       return;
     }
 
-    if (room.phase !== "banger") {
+    const shouldListen = room.phase === "banger" || room.phase === "roundreveal";
+    if (!shouldListen) {
       setBangerVotes({});
       setMyBangerVote(null);
       setBangerStatus("");
@@ -757,7 +757,6 @@ export default function RoomClient({ code }: { code: string }) {
     const playersRef = collection(db, "rooms", roomCode, "players");
     const pSnap = await getDocs(playersRef);
 
-    // defensive: initialize missing scores to 0 locally
     const playerIds = pSnap.docs.map((d) => (d.data() as Player)?.id ?? d.id);
 
     const songsRef = collection(db, "rooms", roomCode, "rounds", String(roundNumber), "songs");
@@ -1038,16 +1037,10 @@ export default function RoomClient({ code }: { code: string }) {
     setTimeout(() => setToast(""), 900);
   }
 
-  // ✅ Banger vote (one per round, must choose a song, not own)
+  // ✅ Banger vote (toggle + change allowed, still only ONE doc per player)
   async function submitBangerVote(songIndex: number) {
     setBangerStatus("");
     if (!room || room.phase !== "banger") return;
-
-    if (myBangerVote) {
-      setBangerStatus("Du hast bereits einen Banger gewählt.");
-      setTimeout(() => setBangerStatus(""), 1200);
-      return;
-    }
 
     const song = roundSongs.find((s) => s.index === songIndex);
     if (!song) {
@@ -1063,6 +1056,17 @@ export default function RoomClient({ code }: { code: string }) {
     }
 
     const ref = doc(db, "rooms", roomCode, "rounds", String(room.roundNumber), "bangerVotes", playerId);
+
+    // ✅ Toggle:
+    // - click same again => remove
+    // - click another => overwrite
+    if (myBangerVote?.songIndex === songIndex) {
+      await deleteDoc(ref);
+      setToast("🗑️ Banger entfernt");
+      setTimeout(() => setToast(""), 1200);
+      return;
+    }
+
     await setDoc(ref, { songIndex, createdAt: serverTimestamp() } satisfies BangerVoteDoc, { merge: true });
 
     setToast("🔥 Banger gewählt");
@@ -1191,6 +1195,18 @@ export default function RoomClient({ code }: { code: string }) {
       cancelled = true;
     };
   }, [room?.phase, room?.roundNumber, roomCode, roundSongs]);
+
+  // ✅ Counts: songIndex -> number of bangers
+  const bangersPerSongIndex = useMemo(() => {
+    const counts: Record<number, number> = {};
+    Object.values(bangerVotes).forEach((v) => {
+      const idx = v?.songIndex;
+      if (!Number.isFinite(idx)) return;
+      const n = idx as number;
+      counts[n] = (counts[n] ?? 0) + 1;
+    });
+    return counts;
+  }, [bangerVotes]);
 
   // ✅ Stats Loader (Finished)
   async function loadGameStats() {
@@ -1570,7 +1586,7 @@ export default function RoomClient({ code }: { code: string }) {
                           height="152"
                           allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                           loading="lazy"
-                          style={{ borderRadius: 16, border: "0" }}
+                          style={{ borderRadius: 16, border: "0", display: "block" }}
                         />
                       </div>
                     </div>
@@ -1605,7 +1621,15 @@ export default function RoomClient({ code }: { code: string }) {
                   </div>
                 </div>
 
-                <div style={{ borderRadius: 16, overflow: "hidden", position: "relative", pointerEvents: isHost ? "auto" : "none", marginTop: 10 }}>
+                <div
+                  style={{
+                    borderRadius: 16,
+                    overflow: "hidden",
+                    position: "relative",
+                    pointerEvents: isHost ? "auto" : "none",
+                    marginTop: 10,
+                  }}
+                >
                   <iframe
                     title="Spotify Embed"
                     src={spotifyEmbedUrlFromSpotifyUrl(room.currentSongUrl)}
@@ -1613,7 +1637,7 @@ export default function RoomClient({ code }: { code: string }) {
                     height="152"
                     allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                     loading="lazy"
-                    style={{ borderRadius: 16, border: "0" }}
+                    style={{ borderRadius: 16, border: "0", display: "block" }}
                   />
                 </div>
 
@@ -1686,7 +1710,12 @@ export default function RoomClient({ code }: { code: string }) {
                           })}
                       </div>
 
-                      <button className="ws-btn" style={{ marginTop: 16 }} onClick={submitVote} disabled={!!myVote || !selectedGuessPlayerId}>
+                      <button
+                        className="ws-btn"
+                        style={{ marginTop: 16 }}
+                        onClick={submitVote}
+                        disabled={!!myVote || !selectedGuessPlayerId}
+                      >
                         {myVote ? "Stimme abgegeben ✅" : "Stimme abgeben"}
                       </button>
 
@@ -1698,7 +1727,12 @@ export default function RoomClient({ code }: { code: string }) {
                   )}
 
                   {isHost && (
-                    <button className="ws-btn ws-btn--ghost" onClick={hostRevealSoft} disabled={!allVotesIn} style={{ marginTop: 12 }}>
+                    <button
+                      className="ws-btn ws-btn--ghost"
+                      onClick={hostRevealSoft}
+                      disabled={!allVotesIn}
+                      style={{ marginTop: 12 }}
+                    >
                       Zwischenstand zeigen (Host) {allVotesIn ? "" : `(${votedCount}/${requiredVotes})`}
                     </button>
                   )}
@@ -1711,7 +1745,10 @@ export default function RoomClient({ code }: { code: string }) {
               <Card>
                 <div className="ws-card-title">Zwischenstand</div>
 
-                <div className="ws-reveal-hero" style={{ backgroundColor: "rgba(0,0,0,.03)", borderRadius: 22, position: "relative", overflow: "hidden" }}>
+                <div
+                  className="ws-reveal-hero"
+                  style={{ backgroundColor: "rgba(0,0,0,.03)", borderRadius: 22, position: "relative", overflow: "hidden" }}
+                >
                   <div key={`confetti-${revealFxKey}`} className="ws-confetti" aria-hidden="true">
                     {Array.from({ length: 14 }).map((_, idx) => (
                       <i
@@ -1752,6 +1789,8 @@ export default function RoomClient({ code }: { code: string }) {
 
                 <div className="ws-muted" style={{ marginTop: 8 }}>
                   Jeder MUSS genau einen Banger pro Runde vergeben. Kein Skip. Du darfst nicht deinen eigenen Song wählen.
+                  <br />
+                  <span style={{ fontSize: 13 }}>Tipp: Du kannst deinen Banger jederzeit ändern oder wieder entfernen.</span>
                 </div>
 
                 {hostStatus && (
@@ -1774,7 +1813,7 @@ export default function RoomClient({ code }: { code: string }) {
                   <div className="ws-stack" style={{ marginTop: 12 }}>
                     {roundSongs.map((s) => {
                       const isMine = s.ownerId === playerId;
-                      const disabled = !!myBangerVote || isMine;
+                      const disabled = isMine; // ✅ allow switching/toggling, only block own song
                       const selected = myBangerVote?.songIndex === s.index;
 
                       return (
@@ -1785,7 +1824,7 @@ export default function RoomClient({ code }: { code: string }) {
                             </div>
 
                             <div style={{ display: "grid", gap: 8, width: "100%" }}>
-                              <div style={{ borderRadius: 14, overflow: "hidden" }}>
+                              <div style={{ borderRadius: 14, overflow: "hidden", width: "100%" }}>
                                 <iframe
                                   title={`Spotify Embed banger ${s.index}`}
                                   src={spotifyEmbedUrlFromSpotifyUrl(s.url)}
@@ -1793,7 +1832,7 @@ export default function RoomClient({ code }: { code: string }) {
                                   height="152"
                                   allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                                   loading="lazy"
-                                  style={{ borderRadius: 14, border: "0" }}
+                                  style={{ borderRadius: 14, border: "0", display: "block" }}
                                 />
                               </div>
 
@@ -1807,7 +1846,11 @@ export default function RoomClient({ code }: { code: string }) {
                                   outline: selected ? "3px solid rgba(0,0,0,.75)" : "none",
                                 }}
                               >
-                                {isMine ? "Eigener Song (nicht wählbar)" : selected ? "Banger gewählt ✅" : "🔥 Diesen Song als Banger wählen"}
+                                {isMine
+                                  ? "Eigener Song (nicht wählbar)"
+                                  : selected
+                                  ? "Banger gewählt ✅ (nochmal klicken zum Entfernen)"
+                                  : "🔥 Diesen Song als Banger wählen"}
                               </button>
                             </div>
                           </div>
@@ -1835,6 +1878,7 @@ export default function RoomClient({ code }: { code: string }) {
 
                 <div className="ws-muted" style={{ marginTop: 8 }}>
                   Jetzt wird gezeigt, wem welcher Song gehört – plus wie viele richtig lagen.
+                  {room.bangerEnabled ? " Zusätzlich: erhaltene Banger pro Song." : ""}
                 </div>
 
                 {roundStatsError && (
@@ -1854,14 +1898,16 @@ export default function RoomClient({ code }: { code: string }) {
 
                       const correctNames = s.correctVoterIds.map((id) => playersById[id]?.name).filter(Boolean) as string[];
 
+                      const bangersForThisSong = room.bangerEnabled ? (bangersPerSongIndex[s.index] ?? 0) : 0;
+
                       return (
                         <div key={s.index} className="ws-list-item" style={{ alignItems: "flex-start" }}>
-                          <div className="ws-list-left" style={{ alignItems: "flex-start" }}>
+                          <div className="ws-list-left" style={{ alignItems: "flex-start", width: "100%" }}>
                             <div className="ws-chip" style={{ minWidth: 64, textAlign: "center" }}>
                               Song {s.index + 1}
                             </div>
 
-                            <div style={{ display: "grid", gap: 8 }}>
+                            <div style={{ display: "grid", gap: 8, width: "100%" }}>
                               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                                 <div className="ws-avatar" style={{ backgroundColor: ownerColor }}>
                                   {(ownerName?.[0] ?? "?").toUpperCase()}
@@ -1871,7 +1917,8 @@ export default function RoomClient({ code }: { code: string }) {
                                 </div>
                               </div>
 
-                              <div style={{ borderRadius: 14, overflow: "hidden" }}>
+                              {/* ✅ left-aligned + full width on mobile */}
+                              <div style={{ borderRadius: 14, overflow: "hidden", width: "100%", marginLeft: 0 }}>
                                 <iframe
                                   title={`Spotify Embed ${s.index}`}
                                   src={spotifyEmbedUrlFromSpotifyUrl(s.url)}
@@ -1879,7 +1926,7 @@ export default function RoomClient({ code }: { code: string }) {
                                   height="152"
                                   allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                                   loading="lazy"
-                                  style={{ borderRadius: 14, border: "0" }}
+                                  style={{ borderRadius: 14, border: "0", display: "block" }}
                                 />
                               </div>
 
@@ -1887,6 +1934,13 @@ export default function RoomClient({ code }: { code: string }) {
                                 Richtig geraten: <b>{s.correctCount}</b>
                                 {correctNames.length > 0 ? ` · (${correctNames.join(", ")})` : ""}
                               </div>
+
+                              {/* ✅ NEW: Erhaltene Banger */}
+                              {room.bangerEnabled && (
+                                <div className="ws-muted" style={{ fontSize: 13 }}>
+                                  Erhaltene Banger: <b>{bangersForThisSong}</b> 🔥
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -2047,7 +2101,9 @@ export default function RoomClient({ code }: { code: string }) {
                                   <div className="ws-name">⚡ Schnellster Finger</div>
                                 </div>
                                 <div className="ws-chip">
-                                  {gameStats.fastestSubmit ? `${nameOf(gameStats.fastestSubmit.playerId)} · ${msLabel(gameStats.fastestSubmit.ms)}` : "—"}
+                                  {gameStats.fastestSubmit
+                                    ? `${nameOf(gameStats.fastestSubmit.playerId)} · ${msLabel(gameStats.fastestSubmit.ms)}`
+                                    : "—"}
                                 </div>
                               </div>
 
@@ -2056,7 +2112,9 @@ export default function RoomClient({ code }: { code: string }) {
                                   <div className="ws-name">🐢 Langsamster Finger</div>
                                 </div>
                                 <div className="ws-chip">
-                                  {gameStats.slowestSubmit ? `${nameOf(gameStats.slowestSubmit.playerId)} · ${msLabel(gameStats.slowestSubmit.ms)}` : "—"}
+                                  {gameStats.slowestSubmit
+                                    ? `${nameOf(gameStats.slowestSubmit.playerId)} · ${msLabel(gameStats.slowestSubmit.ms)}`
+                                    : "—"}
                                 </div>
                               </div>
                             </div>
@@ -2073,7 +2131,9 @@ export default function RoomClient({ code }: { code: string }) {
                                   <div className="ws-name">⚡ Schnellster Guess</div>
                                 </div>
                                 <div className="ws-chip">
-                                  {gameStats.fastestGuess ? `${nameOf(gameStats.fastestGuess.playerId)} · ${msLabel(gameStats.fastestGuess.ms)}` : "—"}
+                                  {gameStats.fastestGuess
+                                    ? `${nameOf(gameStats.fastestGuess.playerId)} · ${msLabel(gameStats.fastestGuess.ms)}`
+                                    : "—"}
                                 </div>
                               </div>
 
@@ -2082,7 +2142,9 @@ export default function RoomClient({ code }: { code: string }) {
                                   <div className="ws-name">🐢 Langsamster Guess</div>
                                 </div>
                                 <div className="ws-chip">
-                                  {gameStats.slowestGuess ? `${nameOf(gameStats.slowestGuess.playerId)} · ${msLabel(gameStats.slowestGuess.ms)}` : "—"}
+                                  {gameStats.slowestGuess
+                                    ? `${nameOf(gameStats.slowestGuess.playerId)} · ${msLabel(gameStats.slowestGuess.ms)}`
+                                    : "—"}
                                 </div>
                               </div>
                             </div>
